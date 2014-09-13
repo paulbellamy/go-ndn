@@ -12,6 +12,7 @@ func NewWriter(w io.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(t *TLV) error {
-	return t.WriteTo(w.w)
+func (w *Writer) Write(t TLV) (int, error) {
+	n, err := t.WriteTo(w.w)
+	return int(n), err
 }

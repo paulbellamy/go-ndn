@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 )
 
-func UintTLV(t, v uint64) *TLV {
+func UintTLV(t, v uint64) TLV {
 	buf := &bytes.Buffer{}
 
 	if v <= 0xff {
@@ -17,5 +17,5 @@ func UintTLV(t, v uint64) *TLV {
 	} else {
 		binary.Write(buf, binary.BigEndian, v)
 	}
-	return &TLV{Type: t, Value: buf.Bytes()}
+	return ByteTLV(t, buf.Bytes())
 }

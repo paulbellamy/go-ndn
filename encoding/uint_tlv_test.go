@@ -7,31 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_TLVWriteTo(t *testing.T) {
-	buf := &bytes.Buffer{}
-	err := (&TLV{Type: 123, Value: []byte("foo")}).WriteTo(buf)
-	assert.NoError(t, err)
-	assert.Equal(t, buf.Bytes(), []byte{
-		123,           // type
-		3,             // length
-		'f', 'o', 'o', // value
-	})
-}
-
-func Test_TLV_MarshalBinary(t *testing.T) {
-	b, err := (&TLV{Type: 123, Value: []byte("foo")}).MarshalBinary()
-	assert.NoError(t, err)
-	assert.Equal(t, b, []byte{
-		123,           // type
-		3,             // length
-		'f', 'o', 'o', // value
-	})
-}
-
 func Test_WriteUintTLV_OneOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	err := UintTLV(123, 0xff).WriteTo(buf)
+	n, err := UintTLV(123, 0xff).WriteTo(buf)
 	assert.NoError(t, err)
+	assert.Equal(t, n, int64(3))
 	assert.Equal(t, buf.Bytes(), []byte{
 		123,  // type
 		1,    // length
@@ -41,8 +21,9 @@ func Test_WriteUintTLV_OneOctetValue(t *testing.T) {
 
 func Test_WriteUintTLV_TwoOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	err := UintTLV(123, 0xffff).WriteTo(buf)
+	n, err := UintTLV(123, 0xffff).WriteTo(buf)
 	assert.NoError(t, err)
+	assert.Equal(t, n, int64(4))
 	assert.Equal(t, buf.Bytes(), []byte{
 		123,        // type
 		2,          // length
@@ -52,8 +33,9 @@ func Test_WriteUintTLV_TwoOctetValue(t *testing.T) {
 
 func Test_WriteUintTLV_FourOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	err := UintTLV(123, 0xffffffff).WriteTo(buf)
+	n, err := UintTLV(123, 0xffffffff).WriteTo(buf)
 	assert.NoError(t, err)
+	assert.Equal(t, n, int64(6))
 	assert.Equal(t, buf.Bytes(), []byte{
 		123,                    // type
 		4,                      // length
@@ -63,8 +45,9 @@ func Test_WriteUintTLV_FourOctetValue(t *testing.T) {
 
 func Test_WriteUintTLV_EightOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	err := UintTLV(123, 0xffffffffffffffff).WriteTo(buf)
+	n, err := UintTLV(123, 0xffffffffffffffff).WriteTo(buf)
 	assert.NoError(t, err)
+	assert.Equal(t, n, int64(10))
 	assert.Equal(t, buf.Bytes(), []byte{
 		123,                    // type
 		8,                      // length

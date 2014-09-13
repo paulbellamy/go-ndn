@@ -1,13 +1,20 @@
 package encoding
 
 import (
-	"bytes"
-	"encoding/binary"
+	"encoding"
 	"errors"
+	"io"
 )
 
 var ErrUnexpectexUintTLVLengthValue = errors.New("Unexpected UintTLV length value")
 
+type TLV interface {
+	Type() uint64
+	io.WriterTo
+	encoding.BinaryMarshaler
+}
+
+/*
 type TLV struct {
 	Type  uint64
 	Value []byte
@@ -39,3 +46,4 @@ func (t *TLV) Uint() (result uint64, err error) {
 	}
 	return
 }
+*/

@@ -12,7 +12,7 @@ func NewReader(r io.Reader) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*TLV, error) {
+func (r *Reader) Read() (TLV, error) {
 	t, _, err := ReadNumber(r.r)
 	if err != nil {
 		return nil, err
@@ -33,5 +33,5 @@ func (r *Reader) Read() (*TLV, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	return &TLV{Type: t, Value: value[0:n]}, nil
+	return ByteTLV(t, value[0:n]), nil
 }
