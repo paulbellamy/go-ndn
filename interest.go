@@ -1,7 +1,7 @@
 package ndn
 
 type Interest struct {
-	name *Name
+	name Name
 
 	childSelector    int
 	hasChildSelector bool
@@ -20,6 +20,8 @@ type Interest struct {
 
 	scope    int
 	hasScope bool
+
+	exclude *Exclude
 }
 
 func (i *Interest) GetChildSelector() int {
@@ -54,7 +56,7 @@ func (i *Interest) GetMaxSuffixComponents() int {
 }
 
 func (i *Interest) SetMaxSuffixComponents(x int) {
-	i.hasMaxSuffixComponents = true
+	i.hasMaxSuffixComponents = (x >= 0)
 	i.maxSuffixComponents = x
 }
 
@@ -66,7 +68,7 @@ func (i *Interest) GetMinSuffixComponents() int {
 }
 
 func (i *Interest) SetMinSuffixComponents(x int) {
-	i.hasMinSuffixComponents = true
+	i.hasMinSuffixComponents = (x >= 0)
 	i.minSuffixComponents = x
 }
 
@@ -82,15 +84,15 @@ func (i *Interest) SetMustBeFresh(x bool) {
 	i.mustBeFresh = x
 }
 
-func (i *Interest) GetName() *Name {
+func (i *Interest) GetName() Name {
 	if i.name == nil {
-		i.name = &Name{}
+		i.name = Name{}
 	}
 	return i.name
 }
 
-func (i *Interest) SetName(x *Name) {
-	i.name = CopyName(x)
+func (i *Interest) SetName(x Name) {
+	i.name = x.Copy()
 }
 
 func (i *Interest) GetScope() int {
@@ -105,6 +107,44 @@ func (i *Interest) SetScope(x int) {
 	i.scope = x
 }
 
-func (i *Interest) MatchesName(n *Name) bool {
-	return i.GetName().Match(n)
+func (i *Interest) GetExclude() *Exclude {
+	return i.exclude
+}
+
+func (i *Interest) SetExclude(e *Exclude) {
+	i.exclude = e
+}
+
+// Check if this Interest's name matches the given name and that the given name
+// also conforms to the interest selectors.
+func (i *Interest) MatchesName(n Name) bool {
+	if !i.GetName().Match(n) {
+		return false
+	}
+
+	if i.hasMinSuffixComponents {
+		if i.suffixes(n) < i.minSuffixComponents {
+			return false
+		}
+	}
+
+	if i.hasMaxSuffixComponents {
+		if i.suffixes(n) > i.maxSuffixComponents {
+			return false
+		}
+	}
+
+	if i.exclude != nil && n.Size() > i.GetName().Size() {
+		if i.exclude.Matches(n.Get(i.GetName().Size())) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Find the number of suffixes in a name
+func (i *Interest) suffixes(n Name) int {
+	// Add 1 for the implicit digest.
+	return n.Size() + 1 - i.GetName().Size()
 }

@@ -13,5 +13,18 @@ func newPendingInterestTable() *pendingInterestTable {
 }
 
 func (p *pendingInterestTable) AddInterest(i *Interest) *pendingInterest {
-	return nil
+	p.nextID++
+	pi := &pendingInterest{
+		ID:       p.nextID,
+		Interest: i,
+	}
+	p.items[pi.ID] = pi
+	return pi
+}
+
+func (p *pendingInterestTable) RemovePendingInterest(id uint64) {
+	delete(p.items, id)
+}
+
+func (p *pendingInterestTable) DispatchData(d *Data) {
 }

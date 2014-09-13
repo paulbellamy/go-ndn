@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/paulbellamy/go-ndn/server"
@@ -22,4 +23,21 @@ type mockTransport struct {
 func (m *mockTransport) Write(b []byte) (int, error) {
 	args := m.Mock.Called(b)
 	return args.Int(0), args.Error(1)
+}
+
+func (m *mockTransport) Read(b []byte) (int, error) {
+	args := m.Mock.Called(b)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *mockTransport) Close() error {
+	return m.Mock.Called().Error(0)
+}
+
+type bufferTransport struct {
+	bytes.Buffer
+}
+
+func (b *bufferTransport) Close() error {
+	return nil
 }

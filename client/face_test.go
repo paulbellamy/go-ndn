@@ -2,8 +2,10 @@ package client
 
 import (
 	"errors"
+	"io"
 	"testing"
 
+	"github.com/paulbellamy/go-ndn/encoding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -22,7 +24,7 @@ func Test_Face_ExpressInterest(t *testing.T) {
 	pending, err := subject.ExpressInterest(&Interest{Name: Name{"a"}})
 	assert.NoError(t, err)
 	if assert.NotNil(t, pending) {
-		// TODO: check stuff about the pending here
+		assert.Equal(t, pending.ID, uint64(1))
 	}
 
 	assert.Equal(t, len(subject.pendingInterestTable.items), 1)
@@ -40,4 +42,56 @@ func Test_Face_ExpressInterest_ErrorWriting(t *testing.T) {
 	assert.Nil(t, pending)
 
 	transport.AssertExpectations(t)
+}
+
+func Test_Face_RemovePendingInterest(t *testing.T) {
+	transport := &mockTransport{}
+	transport.On("Write", mock.AnythingOfType("[]uint8")).Return(0, nil)
+	subject := Face(transport)
+
+	// Add one into the table
+	pending, err := subject.ExpressInterest(&Interest{Name: Name{"a"}})
+	assert.NoError(t, err)
+	assert.Equal(t, len(subject.pendingInterestTable.items), 1)
+
+	// Remove it and check it's gone
+	subject.RemovePendingInterest(pending.ID)
+	assert.Equal(t, len(subject.pendingInterestTable.items), 0)
+
+	transport.AssertExpectations(t)
+}
+
+func Test_Face_ReceivingData(t *testing.T) {
+	transport := &bufferTransport{}
+	subject := Face(transport)
+
+	// Add one into the table
+	pending, err := subject.ExpressInterest(&Interest{Name: Name{"a"}})
+	assert.NoError(t, err)
+	assert.Equal(t, len(subject.pendingInterestTable.items), 1)
+
+	// Make some data available
+	_, err = encoding.ParentTLV(encoding.DataType).WriteTo(transport)
+	assert.NoError(t, err)
+
+	// Process the data
+	assert.EqualError(t, subject.ProcessEvents(), io.EOF.Error())
+
+	// Check we received it
+	select {
+	case d, ok := <-pending.Data:
+		assert.True(t, ok)
+		assert.NotNil(t, d)
+	default:
+		t.Error("Timeout waiting for data packet")
+	}
+
+	// Check the channel was closed
+	select {
+	case d, ok := <-pending.Data:
+		assert.False(t, ok)
+		assert.Nil(t, d)
+	default:
+		t.Error("Timeout waiting for channel to close")
+	}
 }

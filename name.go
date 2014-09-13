@@ -5,73 +5,60 @@ import (
 	"strings"
 )
 
-type Name []*Component
+type Name []Component
 
-func CopyName(n *Name) *Name {
-	newName := &Name{}
-	for _, component := range *n {
-		newName.AppendComponent(component)
+func (n Name) Copy() Name {
+	newName := Name{}
+	for _, component := range n {
+		newName = append(newName, component)
 	}
 	return newName
 }
 
 // implement this with Write as well
-func (n *Name) AppendBytes(b []byte) *Name {
+func (n Name) AppendBytes(b []byte) Name {
+	return append(n, ComponentFromBytes(b))
+}
+
+func (n Name) AppendString(s string) Name {
 	return n
 }
 
-func (n *Name) AppendString(s string) *Name {
-	return n
-}
-
-func (n *Name) AppendComponent(c *Component) *Name {
-	(*n) = append(*n, c)
-	return n
+func (n Name) AppendComponent(c Component) Name {
+	return append(n, c)
 }
 
 func (n *Name) Clear() {
-	(*n) = []*Component{}
+	(*n) = []Component{}
 }
 
-func (n *Name) Get(i int) *Component {
-	size := n.Size()
+func (n Name) Get(i int) Component {
+	return n[n.normalizeIndex(i)]
+}
 
-	if i >= size || i < size*-1 {
-		return nil
-	} else if i < 0 {
-		return (*n)[size+i]
+func (n Name) GetPrefix(count int) Name {
+	return n.GetSubName(0, n.normalizeIndex(count))
+}
+
+func (n Name) GetSubName(offset, count int) Name {
+	start := n.normalizeIndex(offset)
+	end := start + count
+	if end > n.Size() {
+		end = n.Size()
 	}
-	return (*n)[i]
+	return n[start:end]
 }
 
-func (n *Name) Set(uri string) {
-}
-
-func (n *Name) GetPrefix(i int) *Name {
-	newName := &Name{}
+func (n Name) normalizeIndex(i int) int {
 	size := n.Size()
 	if i < 0 {
-		i += size
+		return size + i
 	}
-	for x := 0; x < i && x < size; x++ {
-		newName.AppendComponent(n.Get(x))
-	}
-	return newName
+
+	return i
 }
 
-func (n *Name) GetSubName(offset, count int) *Name {
-	newName := &Name{}
-	size := n.Size()
-	if offset < 0 {
-		offset += size
-	}
-	for x := offset; x < offset+count && x < size; x++ {
-		newName.AppendComponent(n.Get(x))
-	}
-	return newName
-}
-
-func (n *Name) Compare(other *Name) int {
+func (n Name) Compare(other Name) int {
 	nSize := n.Size()
 	otherSize := other.Size()
 	for i := 0; i < nSize && i < otherSize; i++ {
@@ -90,7 +77,11 @@ func (n *Name) Compare(other *Name) int {
 	return 0
 }
 
-func (n *Name) Match(other *Name) bool {
+func (n Name) Equals(other Name) bool {
+	return n.Compare(other) == 0
+}
+
+func (n Name) Match(other Name) bool {
 	toCheck := n.Size()
 	if other.Size() < toCheck {
 		return false
@@ -105,17 +96,17 @@ func (n *Name) Match(other *Name) bool {
 	return true
 }
 
-func (n *Name) Size() int {
-	return len(*n)
+func (n Name) Size() int {
+	return len(n)
 }
 
-func (n *Name) ToURI() string {
-	return ""
+func (n Name) IsEmpty() bool {
+	return n.Size() == 0
 }
 
-func (n *Name) String() string {
+func (n Name) String() string {
 	segments := []string{}
-	for _, component := range *n {
+	for _, component := range n {
 		segments = append(segments, component.String())
 	}
 	return fmt.Sprintf("[%s]", strings.Join(segments, ", "))

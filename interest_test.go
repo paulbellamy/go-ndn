@@ -6,10 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_CopyInterest(t *testing.T) {
-	t.Error("pending")
-}
-
 func Test_Interest_ChildSelector(t *testing.T) {
 	subject := &Interest{}
 
@@ -20,10 +16,6 @@ func Test_Interest_ChildSelector(t *testing.T) {
 	assert.Equal(t, subject.GetChildSelector(), 2)
 }
 
-func Test_Interest_Exclude(t *testing.T) {
-	t.Error("pending")
-}
-
 func Test_Interest_InterestLifetimeMilliseconds(t *testing.T) {
 	subject := &Interest{}
 
@@ -32,10 +24,6 @@ func Test_Interest_InterestLifetimeMilliseconds(t *testing.T) {
 
 	subject.SetInterestLifetimeMilliseconds(2)
 	assert.Equal(t, subject.GetInterestLifetimeMilliseconds(), 2)
-}
-
-func Test_Interest_KeyLocator(t *testing.T) {
-	t.Error("pending")
 }
 
 func Test_Interest_MaxSuffixComponents(t *testing.T) {
@@ -76,25 +64,13 @@ func Test_Interest_Name(t *testing.T) {
 	// when unspecified
 	assert.Equal(t, subject.GetName().Size(), 0)
 
-	name := &Name{&Component{"a"}, &Component{"b"}}
+	name := Name{Component{"a"}, Component{"b"}}
 	subject.SetName(name)
 	assert.Equal(t, subject.GetName(), name)
 
 	// check it is copied
 	name.Clear()
-	assert.Equal(t, subject.GetName(), &Name{&Component{"a"}, &Component{"b"}})
-}
-
-func Test_Interest_Nonce(t *testing.T) {
-	t.Error("pending, should be set when written to wire")
-
-	/*
-		subject := &Interest{}
-
-		// when unspecified
-		nonce := subject.GetNonce()
-		assert.True(t, nonce.IsNull())
-	*/
+	assert.Equal(t, subject.GetName(), Name{Component{"a"}, Component{"b"}})
 }
 
 func Test_Interest_Scope(t *testing.T) {
@@ -107,30 +83,31 @@ func Test_Interest_Scope(t *testing.T) {
 	assert.Equal(t, subject.GetScope(), 2)
 }
 
+func Test_Interest_Exclude(t *testing.T) {
+	subject := &Interest{}
+
+	// when unspecified
+	assert.Nil(t, subject.GetExclude())
+
+	e := &Exclude{}
+	subject.SetExclude(e)
+	assert.Equal(t, subject.GetExclude(), e)
+}
+
 func Test_Interest_MatchesName(t *testing.T) {
 	subject := &Interest{}
-	subject.SetName(&Name{&Component{"foo"}})
-	assert.True(t, subject.MatchesName(&Name{&Component{"foo"}, &Component{"bar"}}))
+	subject.SetName(Name{Component{"foo"}})
+	assert.True(t, subject.MatchesName(Name{Component{"foo"}, Component{"bar"}}))
 
-	t.Error("pending, needs to check the interest selectors as well")
-}
+	subject.SetMinSuffixComponents(1)
+	assert.False(t, subject.MatchesName(Name{}))
+	subject.SetMinSuffixComponents(-1)
 
-func Test_Interest_WireDecodeFromBlob(t *testing.T) {
-	t.Error("pending")
-}
+	subject.SetMaxSuffixComponents(1)
+	assert.False(t, subject.MatchesName(Name{Component{"foo"}, Component{"bar"}, Component{"baz"}}))
+	subject.SetMaxSuffixComponents(-1)
 
-func Test_Interest_WireDecodeFromByteArray(t *testing.T) {
-	t.Error("pending")
-}
-
-func Test_Interest_WireDecodeFromReader(t *testing.T) {
-	t.Error("pending")
-}
-
-func Test_Interest_WireEncode(t *testing.T) {
-	t.Error("pending")
-}
-
-func Test_Interest_WriteTo(t *testing.T) {
-	t.Error("pending")
+	subject.SetExclude(&Exclude{Component{"bar"}})
+	assert.False(t, subject.MatchesName(Name{Component{"foo"}, Component{"bar"}}))
+	subject.SetExclude(nil)
 }

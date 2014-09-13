@@ -6,32 +6,36 @@ type Component struct {
 	value string
 }
 
-func ComponentFromBytes(b []byte) *Component {
-	return &Component{
+func ComponentFromBytes(b []byte) Component {
+	return Component{
 		value: string(b),
 	}
 }
 
-func ComponentFromString(s string) *Component {
-	return &Component{
+func ComponentFromString(s string) Component {
+	return Component{
 		value: s,
 	}
 }
 
-func CopyComponent(c *Component) *Component {
-	return &Component{
+func (c Component) Copy() Component {
+	return Component{
 		value: c.value,
 	}
 }
 
-func (c *Component) String() string {
+func (c Component) String() string {
 	return c.value
 }
 
-func (c *Component) Compare(other *Component) int {
+func (c Component) Compare(other Component) int {
 	return bytes.Compare([]byte(c.value), []byte(other.value))
 }
 
-func (c *Component) Equals(other *Component) bool {
+func (c Component) Equals(other Component) bool {
 	return c.value == other.value
+}
+
+func (c Component) GetValue() string {
+	return c.value
 }
