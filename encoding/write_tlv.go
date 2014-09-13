@@ -1,22 +1,27 @@
 package encoding
 
-import "io"
+import (
+	"bytes"
+	"io"
+)
 
-func WriteTLV(w io.Writer, tlv *TLV) error {
-	err := WriteNumber(w, tlv.Type)
+func (t *TLV) WriteTo(w io.Writer) error {
+	err := WriteNumber(w, t.Type)
 	if err != nil {
 		return err
 	}
 
-	err = WriteNumber(w, uint64(len(tlv.Value)))
+	err = WriteNumber(w, uint64(len(t.Value)))
 	if err != nil {
 		return err
 	}
 
-	_, err = w.Write(tlv.Value)
+	_, err = w.Write(t.Value)
 	return err
 }
 
-func (t *TLV) WriteTo(w io.Writer) error {
-	return WriteTLV(w, t)
+func (t *TLV) MarshalBinary() ([]byte, error) {
+	buf := &bytes.Buffer{}
+	err := t.WriteTo(buf)
+	return buf.Bytes(), err
 }

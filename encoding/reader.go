@@ -2,19 +2,29 @@ package encoding
 
 import "io"
 
-func ReadTLV(r io.Reader) (*TLV, error) {
-	t, _, err := ReadNumber(r)
+type Reader struct {
+	r io.Reader
+}
+
+func NewReader(r io.Reader) *Reader {
+	return &Reader{
+		r: r,
+	}
+}
+
+func (r *Reader) Read() (*TLV, error) {
+	t, _, err := ReadNumber(r.r)
 	if err != nil {
 		return nil, err
 	}
 
-	length, _, err := ReadNumber(r)
+	length, _, err := ReadNumber(r.r)
 	if err != nil {
 		return nil, err
 	}
 
 	value := make([]byte, length)
-	n, err := r.Read(value)
+	n, err := r.r.Read(value)
 	if err != nil {
 		return nil, err
 	}
@@ -24,8 +34,4 @@ func ReadTLV(r io.Reader) (*TLV, error) {
 	}
 
 	return &TLV{Type: t, Value: value[0:n]}, nil
-}
-
-func (t *TLV) ReadFrom(r io.Reader) (int64, error) {
-	return 0, nil
 }
