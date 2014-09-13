@@ -27,4 +27,14 @@ func (p *pendingInterestTable) RemovePendingInterest(id uint64) {
 }
 
 func (p *pendingInterestTable) DispatchData(d *Data) {
+	found := []uint64{}
+	for _, pi := range p.items {
+		if pi.Interest.MatchesName(d.Name) {
+			pi.Data <- d
+		}
+	}
+
+	for _, id := range found {
+		p.RemovePendingInterest(id)
+	}
 }
