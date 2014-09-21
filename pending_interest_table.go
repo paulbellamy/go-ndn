@@ -17,6 +17,7 @@ func (p *pendingInterestTable) AddInterest(i *Interest) *pendingInterest {
 	pi := &pendingInterest{
 		ID:       p.nextID,
 		Interest: i,
+		Data:     make(chan *Data, 1),
 	}
 	p.items[pi.ID] = pi
 	return pi
@@ -31,6 +32,7 @@ func (p *pendingInterestTable) DispatchData(d *Data) {
 	for _, pi := range p.items {
 		if pi.Interest.MatchesName(d.name) {
 			pi.Data <- d
+			close(pi.Data)
 		}
 	}
 

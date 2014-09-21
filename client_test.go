@@ -2,6 +2,7 @@ package ndn
 
 import (
 	"bytes"
+	"io"
 	"testing"
 
 	"github.com/paulbellamy/go-ndn/server"
@@ -36,8 +37,19 @@ func (m *mockTransport) Close() error {
 
 type bufferTransport struct {
 	bytes.Buffer
+	closed    bool
+	remaining io.Reader
+}
+
+func (b *bufferTransport) Read(p []byte) (int, error) {
+	if b.closed {
+		return b.remaining.Read(p)
+	}
+	return b.Buffer.Read(p)
 }
 
 func (b *bufferTransport) Close() error {
+	b.closed = true
+	b.remaining = bytes.NewReader(b.Buffer.Bytes())
 	return nil
 }

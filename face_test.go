@@ -70,8 +70,14 @@ func Test_Face_ReceivingData(t *testing.T) {
 	assert.Equal(t, len(subject.pendingInterestTable.items), 1)
 
 	// Make some data available
-	_, err = encoding.ParentTLV{T: encoding.DataType}.WriteTo(transport)
+	_, err = encoding.ParentTLV{
+		T: encoding.DataType,
+		V: []encoding.TLV{
+			Name{Component{"a"}}.toTLV(),
+		},
+	}.WriteTo(transport)
 	assert.NoError(t, err)
+	transport.Close()
 
 	// Process the data, EOF is silenced
 	assert.NoError(t, subject.ProcessEvents())

@@ -38,6 +38,30 @@ func Test_ReadTLV(t *testing.T) {
 	assert.Equal(t, tlv, ByteTLV{T: 123, V: []byte("foo")})
 }
 
+func Test_ReadParentTLV(t *testing.T) {
+	buf := &bytes.Buffer{}
+	expected := ParentTLV{
+		T: DataType,
+		V: []TLV{
+			ParentTLV{
+				T: NameType,
+				V: []TLV{
+					ByteTLV{
+						T: NameComponentType,
+						V: []byte("a"),
+					},
+				},
+			},
+		},
+	}
+	_, err := expected.WriteTo(buf)
+	assert.NoError(t, err)
+
+	tlv, err := NewReader(buf).Read()
+	assert.NoError(t, err)
+	assert.Equal(t, tlv, expected)
+}
+
 /*
 func Test_ReadUintTLV_UnderflowOnType(t *testing.T) {
 	tlv, err := NewReader(bytes.NewReader([]byte{255})).Read()

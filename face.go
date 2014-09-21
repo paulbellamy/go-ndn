@@ -8,6 +8,7 @@ import (
 )
 
 var ErrUnexpectedEventTypeReceived = errors.New("unexpected event type received")
+var ErrInvalidPacket = errors.New("invalid packet received")
 
 func Face(transport Transport) *face {
 	return &face{
@@ -46,7 +47,10 @@ func (f *face) ProcessEvents() error {
 			return err
 		}
 
-		return f.dispatchEvent(tlv)
+		err = f.dispatchEvent(tlv)
+		if err != nil {
+			return err
+		}
 	}
 }
 
@@ -55,7 +59,11 @@ func (f *face) dispatchEvent(event encoding.TLV) error {
 	case encoding.InterestType:
 		// TODO: implement this
 	case encoding.DataType:
-		name, err := NameFromTLV(event)
+		parent, ok := event.(encoding.ParentTLV)
+		if !ok /*|| len(parent.V) != 4 */ {
+			return ErrInvalidPacket
+		}
+		name, err := NameFromTLV(parent.V[0])
 		if err != nil {
 			return err
 		}

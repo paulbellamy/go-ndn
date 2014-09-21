@@ -1,6 +1,9 @@
 package encoding
 
-import "io"
+import (
+	"bytes"
+	"io"
+)
 
 type Reader struct {
 	r io.Reader
@@ -33,5 +36,32 @@ func (r *Reader) Read() (TLV, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	return ByteTLV{T: t, V: value[0:n]}, nil
+	if r.isParentTLV(t) {
+		children := []TLV{}
+		childReader := NewReader(bytes.NewReader(value[0:n]))
+		var child TLV
+		var err error
+		for child, err = childReader.Read(); err == nil; child, err = childReader.Read() {
+			children = append(children, child)
+		}
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+
+		return ParentTLV{
+			T: t,
+			V: children,
+		}, nil
+	} else {
+		return ByteTLV{T: t, V: value[0:n]}, nil
+	}
+}
+
+func (r *Reader) isParentTLV(t uint64) bool {
+	switch t {
+	case InterestType, DataType, NameType:
+		return true
+	default:
+		return false
+	}
 }
