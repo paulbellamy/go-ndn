@@ -8,11 +8,13 @@ import (
 )
 
 func Test_ParentTLV_WriteTo(t *testing.T) {
-	subject := ParentTLV(
-		NameType,
-		ByteTLV(NameComponentType, []byte("abcd")),
-		ByteTLV(NameComponentType, []byte("1234")),
-	)
+	subject := ParentTLV{
+		T: NameType,
+		V: []TLV{
+			ByteTLV{NameComponentType, []byte("abcd")},
+			ByteTLV{NameComponentType, []byte("1234")},
+		},
+	}
 
 	buf := &bytes.Buffer{}
 	n, err := subject.WriteTo(buf)

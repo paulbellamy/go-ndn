@@ -1,4 +1,4 @@
-package client
+package ndn
 
 import (
 	"bytes"

@@ -1,8 +1,7 @@
-package client
+package ndn
 
 import (
 	"errors"
-	"io"
 	"testing"
 
 	"github.com/paulbellamy/go-ndn/encoding"
@@ -21,7 +20,7 @@ func Test_Face_ExpressInterest(t *testing.T) {
 	transport.On("Write", mock.AnythingOfType("[]uint8")).Return(0, nil)
 
 	subject := Face(transport)
-	pending, err := subject.ExpressInterest(&Interest{Name: Name{"a"}})
+	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})
 	assert.NoError(t, err)
 	if assert.NotNil(t, pending) {
 		assert.Equal(t, pending.ID, uint64(1))
@@ -37,7 +36,7 @@ func Test_Face_ExpressInterest_ErrorWriting(t *testing.T) {
 	transport.On("Write", mock.AnythingOfType("[]uint8")).Return(0, errors.New("test error"))
 
 	subject := Face(transport)
-	pending, err := subject.ExpressInterest(&Interest{Name: Name{"a"}})
+	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})
 	assert.EqualError(t, err, "test error")
 	assert.Nil(t, pending)
 
@@ -50,7 +49,7 @@ func Test_Face_RemovePendingInterest(t *testing.T) {
 	subject := Face(transport)
 
 	// Add one into the table
-	pending, err := subject.ExpressInterest(&Interest{Name: Name{"a"}})
+	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})
 	assert.NoError(t, err)
 	assert.Equal(t, len(subject.pendingInterestTable.items), 1)
 
@@ -66,16 +65,16 @@ func Test_Face_ReceivingData(t *testing.T) {
 	subject := Face(transport)
 
 	// Add one into the table
-	pending, err := subject.ExpressInterest(&Interest{Name: Name{"a"}})
+	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})
 	assert.NoError(t, err)
 	assert.Equal(t, len(subject.pendingInterestTable.items), 1)
 
 	// Make some data available
-	_, err = encoding.ParentTLV(encoding.DataType).WriteTo(transport)
+	_, err = encoding.ParentTLV{T: encoding.DataType}.WriteTo(transport)
 	assert.NoError(t, err)
 
-	// Process the data
-	assert.EqualError(t, subject.ProcessEvents(), io.EOF.Error())
+	// Process the data, EOF is silenced
+	assert.NoError(t, subject.ProcessEvents())
 
 	// Check we received it
 	select {

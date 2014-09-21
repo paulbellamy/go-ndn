@@ -1,6 +1,10 @@
 package ndn
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/paulbellamy/go-ndn/encoding"
+)
 
 type Component struct {
 	value string
@@ -38,4 +42,8 @@ func (c Component) Equals(other Component) bool {
 
 func (c Component) GetValue() string {
 	return c.value
+}
+
+func (c Component) toTLV() encoding.TLV {
+	return encoding.ByteTLV{encoding.NameComponentType, []byte(c.value)}
 }

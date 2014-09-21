@@ -1,5 +1,14 @@
 package ndn
 
+import (
+	"errors"
+	"io"
+
+	"github.com/paulbellamy/go-ndn/encoding"
+)
+
+var ErrInterestNameRequired = errors.New("interest name is required")
+
 type Interest struct {
 	name Name
 
@@ -147,4 +156,16 @@ func (i *Interest) MatchesName(n Name) bool {
 func (i *Interest) suffixes(n Name) int {
 	// Add 1 for the implicit digest.
 	return n.Size() + 1 - i.GetName().Size()
+}
+
+func (i *Interest) WriteTo(w io.Writer) (int64, error) {
+	if i.GetName().IsBlank() {
+		return 0, ErrInterestNameRequired
+	}
+
+	return i.toTLV().WriteTo(w)
+}
+
+func (i *Interest) toTLV() encoding.TLV {
+	return encoding.ParentTLV{encoding.InterestType, []encoding.TLV{i.GetName().toTLV()}}
 }

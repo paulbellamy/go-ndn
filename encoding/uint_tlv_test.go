@@ -9,7 +9,7 @@ import (
 
 func Test_WriteUintTLV_OneOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	n, err := UintTLV(123, 0xff).WriteTo(buf)
+	n, err := UintTLV{123, 0xff}.WriteTo(buf)
 	assert.NoError(t, err)
 	assert.Equal(t, n, int64(3))
 	assert.Equal(t, buf.Bytes(), []byte{
@@ -21,7 +21,7 @@ func Test_WriteUintTLV_OneOctetValue(t *testing.T) {
 
 func Test_WriteUintTLV_TwoOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	n, err := UintTLV(123, 0xffff).WriteTo(buf)
+	n, err := UintTLV{123, 0xffff}.WriteTo(buf)
 	assert.NoError(t, err)
 	assert.Equal(t, n, int64(4))
 	assert.Equal(t, buf.Bytes(), []byte{
@@ -33,7 +33,7 @@ func Test_WriteUintTLV_TwoOctetValue(t *testing.T) {
 
 func Test_WriteUintTLV_FourOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	n, err := UintTLV(123, 0xffffffff).WriteTo(buf)
+	n, err := UintTLV{123, 0xffffffff}.WriteTo(buf)
 	assert.NoError(t, err)
 	assert.Equal(t, n, int64(6))
 	assert.Equal(t, buf.Bytes(), []byte{
@@ -45,7 +45,7 @@ func Test_WriteUintTLV_FourOctetValue(t *testing.T) {
 
 func Test_WriteUintTLV_EightOctetValue(t *testing.T) {
 	buf := &bytes.Buffer{}
-	n, err := UintTLV(123, 0xffffffffffffffff).WriteTo(buf)
+	n, err := UintTLV{123, 0xffffffffffffffff}.WriteTo(buf)
 	assert.NoError(t, err)
 	assert.Equal(t, n, int64(10))
 	assert.Equal(t, buf.Bytes(), []byte{

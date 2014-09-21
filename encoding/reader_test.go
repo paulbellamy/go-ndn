@@ -35,7 +35,7 @@ func Test_ReadTLV_UnderflowOnValue(t *testing.T) {
 func Test_ReadTLV(t *testing.T) {
 	tlv, err := NewReader(bytes.NewReader([]byte{123, 3, 'f', 'o', 'o'})).Read()
 	assert.NoError(t, err)
-	assert.Equal(t, tlv, ByteTLV(123, []byte("foo")))
+	assert.Equal(t, tlv, ByteTLV{T: 123, V: []byte("foo")})
 }
 
 /*

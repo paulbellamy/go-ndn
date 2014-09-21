@@ -1,4 +1,4 @@
-package client
+package ndn
 
 type pendingInterest struct {
 	ID       uint64

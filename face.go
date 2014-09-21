@@ -1,7 +1,8 @@
-package client
+package ndn
 
 import (
 	"errors"
+	"io"
 
 	"github.com/paulbellamy/go-ndn/encoding"
 )
@@ -37,20 +38,28 @@ func (f *face) ProcessEvents() error {
 	r := encoding.NewReader(f.transport)
 
 	for {
-		event, err := r.Read()
+		tlv, err := r.Read()
 		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
 			return err
 		}
 
-		return f.dispatchEvent(event)
+		return f.dispatchEvent(tlv)
 	}
 }
 
-func (f *face) dispatchEvent(event interface{}) error {
-	switch event := event.(type) {
-	case *Interest:
-	case *Data:
-		f.pendingInterestTable.DispatchData(event)
+func (f *face) dispatchEvent(event encoding.TLV) error {
+	switch event.Type() {
+	case encoding.InterestType:
+		// TODO: implement this
+	case encoding.DataType:
+		name, err := NameFromTLV(event)
+		if err != nil {
+			return err
+		}
+		f.pendingInterestTable.DispatchData(&Data{name: name})
 	default:
 		return ErrUnexpectedEventTypeReceived
 	}

@@ -33,5 +33,5 @@ func (r *Reader) Read() (TLV, error) {
 		return nil, io.ErrUnexpectedEOF
 	}
 
-	return ByteTLV(t, value[0:n]), nil
+	return ByteTLV{T: t, V: value[0:n]}, nil
 }

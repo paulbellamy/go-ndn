@@ -1,11 +1,40 @@
 package ndn
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/paulbellamy/go-ndn/encoding"
 )
 
+var ErrTLVIsNotAName = errors.New("TLV is not a name")
+
 type Name []Component
+
+func NameFromTLV(t encoding.TLV) (n Name, err error) {
+	if t.Type() != encoding.NameType {
+		err = ErrTLVIsNotAName
+		return
+	}
+	tlv, ok := t.(encoding.ParentTLV)
+	if !ok {
+		err = ErrTLVIsNotAName
+		return
+	}
+
+	for _, component := range tlv.V {
+		c, ok := component.(encoding.ByteTLV)
+		if !ok {
+			err = ErrTLVIsNotAName
+			return
+		}
+
+		n = append(n, Component{string(c.V)})
+	}
+
+	return
+}
 
 func (n Name) Copy() Name {
 	newName := Name{}
@@ -110,4 +139,16 @@ func (n Name) String() string {
 		segments = append(segments, component.String())
 	}
 	return fmt.Sprintf("[%s]", strings.Join(segments, ", "))
+}
+
+func (n Name) IsBlank() bool {
+	return len(n) == 0
+}
+
+func (n Name) toTLV() encoding.TLV {
+	componentTLVs := []encoding.TLV{}
+	for _, component := range n {
+		componentTLVs = append(componentTLVs, component.toTLV())
+	}
+	return encoding.ParentTLV{encoding.NameType, componentTLVs}
 }

@@ -3,10 +3,33 @@ package ndn
 import (
 	"testing"
 
+	"github.com/paulbellamy/go-ndn/encoding"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_CopyName(t *testing.T) {
+func Test_NameFromTLV(t *testing.T) {
+	tlv := encoding.ParentTLV{
+		T: encoding.NameType,
+		V: []encoding.TLV{
+			encoding.ByteTLV{
+				T: encoding.NameComponentType,
+				V: []byte("foo"),
+			},
+		},
+	}
+	subject, err := NameFromTLV(tlv)
+	assert.NoError(t, err)
+	assert.Equal(t, subject, Name{Component{"foo"}})
+}
+
+func Test_NameFromTLV_WrongType(t *testing.T) {
+	tlv := encoding.ParentTLV{T: encoding.InterestType}
+	subject, err := NameFromTLV(tlv)
+	assert.EqualError(t, err, "TLV is not a name")
+	assert.Nil(t, subject)
+}
+
+func Test_Name_Copy(t *testing.T) {
 	subject := Name{Component{"a"}, Component{"b"}}
 	subject2 := subject.Copy()
 	assert.Equal(t, subject, subject2)
@@ -117,4 +140,9 @@ func Test_Name_Size(t *testing.T) {
 func Test_Name_IsEmpty(t *testing.T) {
 	assert.True(t, Name{}.IsEmpty())
 	assert.False(t, Name{Component{"a"}, Component{"b"}, Component{"c"}}.IsEmpty())
+}
+
+func Test_Name_IsBlank(t *testing.T) {
+	assert.True(t, Name{}.IsBlank())
+	assert.False(t, Name{Component{"a"}}.IsBlank())
 }
