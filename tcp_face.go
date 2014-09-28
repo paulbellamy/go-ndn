@@ -2,10 +2,10 @@ package ndn
 
 import "net"
 
-func TCPFace(addr string) (*face, error) {
+func NewTCPFace(addr string) (*Face, error) {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	return Face(conn), nil
+	return NewFace(conn), nil
 }

@@ -31,8 +31,7 @@ func (p *pendingInterestTable) DispatchData(d *Data) {
 	found := []uint64{}
 	for _, pi := range p.items {
 		if pi.Interest.MatchesName(d.name) {
-			pi.Data <- d
-			close(pi.Data)
+			pi.deliver(d)
 		}
 	}
 

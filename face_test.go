@@ -11,15 +11,15 @@ import (
 
 func Test_Face(t *testing.T) {
 	transport := testTransport(t)
-	subject := Face(transport)
-	assert.IsType(t, (*face)(nil), subject)
+	subject := NewFace(transport)
+	assert.IsType(t, (*Face)(nil), subject)
 }
 
 func Test_Face_ExpressInterest(t *testing.T) {
 	transport := &mockTransport{}
 	transport.On("Write", mock.AnythingOfType("[]uint8")).Return(0, nil)
 
-	subject := Face(transport)
+	subject := NewFace(transport)
 	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})
 	assert.NoError(t, err)
 	if assert.NotNil(t, pending) {
@@ -35,7 +35,7 @@ func Test_Face_ExpressInterest_ErrorWriting(t *testing.T) {
 	transport := &mockTransport{}
 	transport.On("Write", mock.AnythingOfType("[]uint8")).Return(0, errors.New("test error"))
 
-	subject := Face(transport)
+	subject := NewFace(transport)
 	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})
 	assert.EqualError(t, err, "test error")
 	assert.Nil(t, pending)
@@ -46,7 +46,7 @@ func Test_Face_ExpressInterest_ErrorWriting(t *testing.T) {
 func Test_Face_RemovePendingInterest(t *testing.T) {
 	transport := &mockTransport{}
 	transport.On("Write", mock.AnythingOfType("[]uint8")).Return(0, nil)
-	subject := Face(transport)
+	subject := NewFace(transport)
 
 	// Add one into the table
 	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})
@@ -62,7 +62,7 @@ func Test_Face_RemovePendingInterest(t *testing.T) {
 
 func Test_Face_ReceivingData(t *testing.T) {
 	transport := &bufferTransport{}
-	subject := Face(transport)
+	subject := NewFace(transport)
 
 	// Add one into the table
 	pending, err := subject.ExpressInterest(&Interest{name: Name{Component{"a"}}})

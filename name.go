@@ -69,6 +69,14 @@ func (n Name) GetPrefix(count int) Name {
 	return n.GetSubName(0, n.normalizeIndex(count))
 }
 
+func (n Name) GetSuffix(count int) Name {
+	start := n.Size() - count
+	if start < 0 {
+		start = 0
+	}
+	return n.GetSubName(start, n.Size())
+}
+
 func (n Name) GetSubName(offset, count int) Name {
 	start := n.normalizeIndex(offset)
 	end := start + count
@@ -151,4 +159,77 @@ func (n Name) toTLV() encoding.TLV {
 		componentTLVs = append(componentTLVs, component.toTLV())
 	}
 	return encoding.ParentTLV{encoding.NameType, componentTLVs}
+}
+
+func (n Name) ToURI() string {
+	segmentStrings := []string{}
+	for _, segment := range n {
+		segmentStrings = append(segmentStrings, escapeDots(escapeHex(segment.String())))
+	}
+	return fmt.Sprint("ndn:/", strings.Join(segmentStrings, "/"))
+}
+
+func escapeHex(s string) string {
+	spaceCount, hexCount := 0, 0
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if shouldEscape(c) {
+			hexCount++
+		}
+	}
+
+	if spaceCount == 0 && hexCount == 0 {
+		return s
+	}
+
+	t := make([]byte, len(s)+2*hexCount)
+	j := 0
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; {
+		case shouldEscape(c):
+			t[j] = '%'
+			t[j+1] = "0123456789ABCDEF"[c>>4]
+			t[j+2] = "0123456789ABCDEF"[c&15]
+			j += 3
+		default:
+			t[j] = s[i]
+			j++
+		}
+	}
+	return string(t)
+}
+
+// Return true if the specified character should be escaped when
+// appearing in a URL string, according to RFC 3986.
+// When 'all' is true the full range of reserved characters are matched.
+func shouldEscape(c byte) bool {
+	// §2.3 Unreserved characters (alphanum)
+	if 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z' || '0' <= c && c <= '9' {
+		return false
+	}
+
+	switch c {
+	case '-', '_', '.', '~': // §2.3 Unreserved characters (mark)
+		return false
+
+	case '$', '&', '+', ',', '/', ':', ';', '=', '?', '@': // §2.2 Reserved characters (reserved)
+		// The RFC allows : @ & = + $ but saves / ; , for assigning
+		// meaning to individual path segments. This package
+		// only manipulates the path as a whole, so we allow those
+		// last two as well. That leaves only ? to escape.
+		return c == '?'
+	}
+
+	// Everything else must be escaped.
+	return true
+}
+
+func escapeDots(s string) string {
+	for i := 0; i < len(s); i++ {
+		if s[i] != '.' {
+			return s
+		}
+	}
+
+	return fmt.Sprint("...", s)
 }

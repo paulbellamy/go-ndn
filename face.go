@@ -10,19 +10,19 @@ import (
 var ErrUnexpectedEventTypeReceived = errors.New("unexpected event type received")
 var ErrInvalidPacket = errors.New("invalid packet received")
 
-func Face(transport Transport) *face {
-	return &face{
+func NewFace(transport Transport) *Face {
+	return &Face{
 		transport:            transport,
 		pendingInterestTable: newPendingInterestTable(),
 	}
 }
 
-type face struct {
+type Face struct {
 	transport            Transport
 	pendingInterestTable *pendingInterestTable
 }
 
-func (f *face) ExpressInterest(i *Interest) (*pendingInterest, error) {
+func (f *Face) ExpressInterest(i *Interest) (*pendingInterest, error) {
 	pendingInterest := f.pendingInterestTable.AddInterest(i)
 	_, err := i.WriteTo(f.transport)
 	if err != nil {
@@ -31,11 +31,11 @@ func (f *face) ExpressInterest(i *Interest) (*pendingInterest, error) {
 	return pendingInterest, nil
 }
 
-func (f *face) RemovePendingInterest(id uint64) {
+func (f *Face) RemovePendingInterest(id uint64) {
 	f.pendingInterestTable.RemovePendingInterest(id)
 }
 
-func (f *face) ProcessEvents() error {
+func (f *Face) ProcessEvents() error {
 	r := encoding.NewReader(f.transport)
 
 	for {
@@ -54,7 +54,7 @@ func (f *face) ProcessEvents() error {
 	}
 }
 
-func (f *face) dispatchEvent(event encoding.TLV) error {
+func (f *Face) dispatchEvent(event encoding.TLV) error {
 	switch event.Type() {
 	case encoding.InterestType:
 		// TODO: implement this
@@ -74,6 +74,6 @@ func (f *face) dispatchEvent(event encoding.TLV) error {
 	return nil
 }
 
-func (f *face) Close() error {
+func (f *Face) Close() error {
 	return f.transport.Close()
 }

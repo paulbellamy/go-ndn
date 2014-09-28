@@ -3,6 +3,7 @@ package ndn
 import (
 	"errors"
 	"io"
+	"time"
 
 	"github.com/paulbellamy/go-ndn/encoding"
 )
@@ -15,8 +16,8 @@ type Interest struct {
 	childSelector    int
 	hasChildSelector bool
 
-	lifetimeMilliseconds    int
-	hasLifetimeMilliseconds bool
+	lifetime    time.Duration
+	hasLifetime bool
 
 	maxSuffixComponents    int
 	hasMaxSuffixComponents bool
@@ -45,16 +46,16 @@ func (i *Interest) SetChildSelector(x int) {
 	i.childSelector = x
 }
 
-func (i *Interest) GetInterestLifetimeMilliseconds() int {
-	if !i.hasLifetimeMilliseconds {
+func (i *Interest) GetInterestLifetime() time.Duration {
+	if !i.hasLifetime {
 		return -1
 	}
-	return i.lifetimeMilliseconds
+	return i.lifetime
 }
 
-func (i *Interest) SetInterestLifetimeMilliseconds(x int) {
-	i.hasLifetimeMilliseconds = true
-	i.lifetimeMilliseconds = x
+func (i *Interest) SetInterestLifetime(x time.Duration) {
+	i.hasLifetime = true
+	i.lifetime = x
 }
 
 func (i *Interest) GetMaxSuffixComponents() int {

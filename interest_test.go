@@ -3,6 +3,7 @@ package ndn
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/paulbellamy/go-ndn/encoding"
 	"github.com/stretchr/testify/assert"
@@ -18,14 +19,14 @@ func Test_Interest_ChildSelector(t *testing.T) {
 	assert.Equal(t, subject.GetChildSelector(), 2)
 }
 
-func Test_Interest_InterestLifetimeMilliseconds(t *testing.T) {
+func Test_Interest_InterestLifetime(t *testing.T) {
 	subject := &Interest{}
 
 	// when unspecified
-	assert.Equal(t, subject.GetInterestLifetimeMilliseconds(), -1)
+	assert.Equal(t, subject.GetInterestLifetime(), -1)
 
-	subject.SetInterestLifetimeMilliseconds(2)
-	assert.Equal(t, subject.GetInterestLifetimeMilliseconds(), 2)
+	subject.SetInterestLifetime(2 * time.Millisecond)
+	assert.Equal(t, subject.GetInterestLifetime(), 2*time.Millisecond)
 }
 
 func Test_Interest_MaxSuffixComponents(t *testing.T) {

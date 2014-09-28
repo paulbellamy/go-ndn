@@ -102,6 +102,18 @@ func Test_Name_GetPrefix(t *testing.T) {
 	assert.Equal(t, subject.GetPrefix(-3), Name{})
 }
 
+func Test_Name_GetSuffix(t *testing.T) {
+	component1 := Component{"a"}
+	component2 := Component{"b"}
+	component3 := Component{"c"}
+	subject := Name{component1, component2, component3}
+	assert.Equal(t, subject.GetSuffix(0), Name{})
+	assert.Equal(t, subject.GetSuffix(1), Name{component3})
+	assert.Equal(t, subject.GetSuffix(2), Name{component2, component3})
+	assert.Equal(t, subject.GetSuffix(3), Name{component1, component2, component3})
+	assert.Equal(t, subject.GetSuffix(4), Name{component1, component2, component3})
+}
+
 func Test_Name_GetSubName(t *testing.T) {
 	component1 := Component{"a"}
 	component2 := Component{"b"}
@@ -145,4 +157,24 @@ func Test_Name_IsEmpty(t *testing.T) {
 func Test_Name_IsBlank(t *testing.T) {
 	assert.True(t, Name{}.IsBlank())
 	assert.False(t, Name{Component{"a"}}.IsBlank())
+}
+
+func Test_Name_ToURI(t *testing.T) {
+	assert.Equal(t, Name{Component{"a"}, Component{"b"}}.ToURI(), "ndn:/a/b")
+}
+
+func Test_Name_ToURI_Empty(t *testing.T) {
+	assert.Equal(t, Name{}.ToURI(), "ndn:/")
+}
+
+func Test_Name_ToURI_Escaping(t *testing.T) {
+	assert.Equal(t, Name{Component{"a+._-c"}, Component{"b c"}}.ToURI(), "ndn:/a+._-c/b%20c")
+}
+
+func Test_Name_ToURI_EmptySegments(t *testing.T) {
+	assert.Equal(t, Name{Component{"a"}, Component{""}, Component{"b"}}.ToURI(), "ndn:/a/.../b")
+}
+
+func Test_Name_ToURI_DotSegments(t *testing.T) {
+	assert.Equal(t, Name{Component{"a"}, Component{".."}, Component{"b"}}.ToURI(), "ndn:/a/...../b")
 }

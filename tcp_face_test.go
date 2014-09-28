@@ -8,7 +8,7 @@ func Test_TCPFace(t *testing.T) {
 		server := testServer(t)
 		defer server.Close()
 
-		subject := TCPFace(server.Addr().String())
+		subject := NewTCPFace(server.Addr().String())
 		assert.IsType(t, (*tcpFace)(nil), subject)
 	*/
 }
