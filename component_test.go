@@ -38,3 +38,15 @@ func Test_Component_Equals(t *testing.T) {
 func Test_Component_GetValue(t *testing.T) {
 	assert.Equal(t, Component{value: "foo"}.GetValue(), "foo")
 }
+
+func Test_Component_ToURI_Escaping(t *testing.T) {
+	assert.Equal(t, Component{"b c"}.ToURI(), "b%20c")
+}
+
+func Test_Component_ToURI_Empty(t *testing.T) {
+	assert.Equal(t, Component{""}.ToURI(), "...")
+}
+
+func Test_Component_ToURI_Dots(t *testing.T) {
+	assert.Equal(t, Component{".."}.ToURI(), ".....")
+}

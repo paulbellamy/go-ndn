@@ -100,3 +100,59 @@ func Test_Face_ReceivingData(t *testing.T) {
 		t.Error("Timeout waiting for channel to close")
 	}
 }
+
+func Test_Face_Put(t *testing.T) {
+	transport := &bufferTransport{}
+	subject := NewFace(transport)
+
+	// Publish a data packet
+	err := subject.Put(&Data{name: Name{Component{"a"}}, content: []byte("hello world")})
+	assert.NoError(t, err)
+
+	// Check some data was written
+	assert.True(t, len(transport.Buffer.Bytes()) > 0)
+}
+
+func Test_Face_Put_PacketTooLarge(t *testing.T) {
+	transport := &bufferTransport{}
+	subject := NewFace(transport)
+
+	content := []byte{}
+	for i := 0; i <= MaxNDNPacketSize; i++ {
+		content = append(content, '0')
+	}
+
+	// Publish a data packet
+	err := subject.Put(&Data{name: Name{Component{"a"}}, content: content})
+	assert.Equal(t, err, PacketTooLargeError)
+
+	// Process the data, EOF is silenced
+	// Do we need this?
+	//assert.NoError(t, subject.ProcessEvents())
+
+	// Check no data was written
+	assert.Equal(t, len(transport.Buffer.Bytes()), 0)
+}
+
+func Test_Face_SetInterestFilter(t *testing.T) {
+	transport := &bufferTransport{}
+	subject := NewFace(transport)
+
+	filter := PrefixInterestFilter(Name{Component{"a"}})
+	interests, err := subject.SetInterestFilter(filter)
+	assert.NoError(t, err)
+	assert.NotNil(t, interests)
+
+	// TODO: Need to send a packet through and check it's passed out on interests chan
+
+	// Process the data, EOF is silenced
+	// Do we need this?
+	//assert.NoError(t, subject.ProcessEvents())
+
+	// Check no data was written
+	assert.Equal(t, len(transport.Buffer.Bytes()), 0)
+}
+
+func Test_Face_SetInterestFilter_ErrorRegistering(t *testing.T) {
+	t.Error("pending")
+}

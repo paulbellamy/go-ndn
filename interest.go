@@ -1,14 +1,11 @@
 package ndn
 
 import (
-	"errors"
 	"io"
 	"time"
 
 	"github.com/paulbellamy/go-ndn/encoding"
 )
-
-var ErrInterestNameRequired = errors.New("interest name is required")
 
 type Interest struct {
 	name Name
@@ -161,7 +158,7 @@ func (i *Interest) suffixes(n Name) int {
 
 func (i *Interest) WriteTo(w io.Writer) (int64, error) {
 	if i.GetName().IsBlank() {
-		return 0, ErrInterestNameRequired
+		return 0, ErrNameRequired
 	}
 
 	return i.toTLV().WriteTo(w)

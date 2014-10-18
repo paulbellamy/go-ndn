@@ -32,7 +32,7 @@ func usage() {
 	os.Exit(1)
 }
 
-var name = `Usage: client.go [options] ndn:/name/prefix
+var name = `Usage: ping-client [options] ndn:/name/prefix
 
 Ping a NDN name prefix using Interests with name ndn:/name/prefix/ping/number.
 The numbers in the Interests are randomly generated unless specified.
@@ -42,6 +42,7 @@ The numbers in the Interests are randomly generated unless specified.
 // stuff to configure this, like:
 // https://github.com/named-data/ndn-cxx/blob/master/src/transport/unix-transport.cpp
 var defaultSocketName = "/var/run/nfd.sock"
+var defaultAddress = "192.168.59.103:6363"
 var minimumPingInterval = 1000 * time.Millisecond
 var pingTimeoutThreshold = 4000 * time.Millisecond
 
@@ -85,7 +86,7 @@ func main() {
 
 	fmt.Fprintln(out, "=== Pinging prefix ===")
 
-	transport, err := net.Dial("unix", defaultSocketName)
+	transport, err := net.Dial("tcp", defaultAddress)
 	if err != nil {
 		fmt.Fprintln(errOut, err)
 		os.Exit(1)

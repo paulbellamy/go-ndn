@@ -3,3 +3,5 @@ nfd:
   volumes:
     - .:/code
   working_dir: /code
+  ports:
+   - "6363:6363"

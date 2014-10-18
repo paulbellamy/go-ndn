@@ -1,6 +1,7 @@
 package ndn
 
 import (
+	"bytes"
 	"errors"
 	"io"
 
@@ -72,6 +73,27 @@ func (f *Face) dispatchEvent(event encoding.TLV) error {
 		return ErrUnexpectedEventTypeReceived
 	}
 	return nil
+}
+
+func (f *Face) Put(d *Data) error {
+	// blagh encoding this then copying is inefficient, but I don't know how to
+	// check the maximum size otherwise.
+	buf := &bytes.Buffer{}
+	_, err := d.WriteTo(buf)
+	if err != nil {
+		return err
+	}
+
+	if len(buf.Bytes()) > MaxNDNPacketSize {
+		return PacketTooLargeError
+	}
+
+	_, err = io.Copy(f.transport, buf)
+	return err
+}
+
+func (f *Face) SetInterestFilter(filter InterestFilter) (<-chan *Interest, error) {
+	return nil, nil
 }
 
 func (f *Face) Close() error {

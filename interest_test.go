@@ -147,7 +147,7 @@ func Test_Interest_WriteTo_WithoutAName(t *testing.T) {
 
 	subject := &Interest{}
 	n, err := subject.WriteTo(buf)
-	assert.EqualError(t, err, ErrInterestNameRequired.Error())
+	assert.EqualError(t, err, ErrNameRequired.Error())
 	assert.Equal(t, n, int64(0))
 	assert.Nil(t, buf.Bytes(), "Expected nothing to be written, but data was found.")
 }
