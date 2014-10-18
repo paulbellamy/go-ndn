@@ -15,20 +15,26 @@ func (t UintTLV) Type() uint64 {
 	return t.T
 }
 
-func (t UintTLV) WriteTo(w io.Writer) (n int64, err error) {
+func (t UintTLV) WriteTo(w io.Writer) (int64, error) {
 	buf := &bytes.Buffer{}
-
-	if t.V <= 0xff {
-		binary.Write(buf, binary.BigEndian, uint8(t.V))
-	} else if t.V <= 0xffff {
-		binary.Write(buf, binary.BigEndian, uint16(t.V))
-	} else if t.V <= 0xffffffff {
-		binary.Write(buf, binary.BigEndian, uint32(t.V))
-	} else {
-		binary.Write(buf, binary.BigEndian, t.V)
+	err := WriteUint(buf, t.V)
+	if err != nil {
+		return 0, err
 	}
 
 	return ByteTLV{T: t.T, V: buf.Bytes()}.WriteTo(w)
+}
+
+func WriteUint(w io.Writer, v uint64) error {
+	if v <= 0xff {
+		return binary.Write(w, binary.BigEndian, uint8(v))
+	} else if v <= 0xffff {
+		return binary.Write(w, binary.BigEndian, uint16(v))
+	} else if v <= 0xffffffff {
+		return binary.Write(w, binary.BigEndian, uint32(v))
+	} else {
+		return binary.Write(w, binary.BigEndian, v)
+	}
 }
 
 func (t UintTLV) MarshalBinary() ([]byte, error) {

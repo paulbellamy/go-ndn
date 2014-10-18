@@ -2,13 +2,10 @@ package ndn
 
 import (
 	"crypto"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"io"
 )
-
-var randSource = rand.Reader
 
 type KeyChain struct{}
 
@@ -22,7 +19,7 @@ type signable interface {
 	SetSignature(Signature)
 }
 
-func (k *KeyChain) Sign(packet signable) error {
+func (k *KeyChain) Sign(packet signable, certificateName Name) error {
 	hash := sha256.New()
 	_, err := packet.WriteTo(hash)
 	if err != nil {

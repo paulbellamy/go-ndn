@@ -88,8 +88,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	filter := ndn.PrefixInterestFilter(name.AppendString("ping"))
-	interests, err := face.SetInterestFilter(filter)
+	interests, err := face.RegisterPrefix(name.AppendString("ping"))
 	if err != nil {
 		fmt.Fprintln(errOut, err)
 		os.Exit(1)
@@ -149,7 +148,7 @@ func dataPacket(keyChain *ndn.KeyChain, interest *ndn.Interest) *ndn.Data {
 	data.SetName(interest.GetName())
 	data.SetFreshnessPeriod(*freshnessPeriod)
 	data.SetContent([]byte("NDN TLV Ping Response"))
-	keyChain.Sign(data)
+	keyChain.Sign(data, ndn.Name{ndn.Component{"What do I put for certificate name here?"}})
 	return data
 }
 

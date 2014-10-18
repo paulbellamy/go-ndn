@@ -61,6 +61,15 @@ func Test_Interest_MustBeFresh(t *testing.T) {
 	assert.False(t, subject.GetMustBeFresh())
 }
 
+func Test_Interest_Signature(t *testing.T) {
+	subject := &Interest{}
+
+	assert.Nil(t, subject.GetSignature())
+	signature := Sha256WithRSASignature{}
+	subject.SetSignature(signature)
+	assert.Equal(t, subject.GetSignature(), signature)
+}
+
 func Test_Interest_Name(t *testing.T) {
 	subject := &Interest{}
 

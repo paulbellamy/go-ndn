@@ -29,6 +29,8 @@ type Interest struct {
 	hasScope bool
 
 	exclude *Exclude
+
+	signature Signature
 }
 
 func (i *Interest) GetChildSelector() int {
@@ -89,6 +91,14 @@ func (i *Interest) GetMustBeFresh() bool {
 func (i *Interest) SetMustBeFresh(x bool) {
 	i.hasMustBeFresh = true
 	i.mustBeFresh = x
+}
+
+func (i *Interest) GetSignature() Signature {
+	return i.signature
+}
+
+func (i *Interest) SetSignature(s Signature) {
+	i.signature = s
 }
 
 func (i *Interest) GetName() Name {

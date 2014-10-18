@@ -18,7 +18,7 @@ func Test_KeyChain_Sign_Data(t *testing.T) {
 	}
 
 	assert.Nil(t, packet.GetSignature())
-	assert.NoError(t, subject.Sign(packet))
+	assert.NoError(t, subject.Sign(packet, Name{Component{"certificate"}}))
 	assert.NotNil(t, packet.GetSignature())
 }
 
@@ -27,6 +27,15 @@ func Test_KeyChain_Sign_ErrorWritingPacket(t *testing.T) {
 	packet := &Data{}
 
 	assert.Nil(t, packet.GetSignature())
-	assert.Equal(t, subject.Sign(packet), ErrNameRequired)
+	assert.Equal(t, subject.Sign(packet, Name{Component{"certificate"}}), ErrNameRequired)
+	assert.Nil(t, packet.GetSignature())
+}
+
+func Test_KeyChain_Sign_CertificateNotFound(t *testing.T) {
+	subject := testKeyChain(t)
+	packet := &Data{}
+
+	assert.Nil(t, packet.GetSignature())
+	assert.Equal(t, subject.Sign(packet, Name{Component{"certificate_not_found"}}), ErrCertificateNotFound)
 	assert.Nil(t, packet.GetSignature())
 }

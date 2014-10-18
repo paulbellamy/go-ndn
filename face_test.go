@@ -134,12 +134,13 @@ func Test_Face_Put_PacketTooLarge(t *testing.T) {
 	assert.Equal(t, len(transport.Buffer.Bytes()), 0)
 }
 
-func Test_Face_SetInterestFilter(t *testing.T) {
+func Test_Face_RegisterPrefix(t *testing.T) {
 	transport := &bufferTransport{}
 	subject := NewFace(transport)
+	keyChain := NewKeyChain()
+	subject.SetCommandSigningInfo(keyChain, Name{Component{"certificate"}})
 
-	filter := PrefixInterestFilter(Name{Component{"a"}})
-	interests, err := subject.SetInterestFilter(filter)
+	interests, err := subject.RegisterPrefix(Name{Component{"a"}})
 	assert.NoError(t, err)
 	assert.NotNil(t, interests)
 
@@ -153,6 +154,34 @@ func Test_Face_SetInterestFilter(t *testing.T) {
 	assert.Equal(t, len(transport.Buffer.Bytes()), 0)
 }
 
-func Test_Face_SetInterestFilter_ErrorRegistering(t *testing.T) {
+func Test_Face_RegisterPrefix_NoCommandKeychainSet(t *testing.T) {
+	transport := &bufferTransport{}
+	subject := NewFace(transport)
+
+	subject.SetCommandSigningInfo(nil, Name{Component{"certificate"}})
+
+	interests, err := subject.RegisterPrefix(Name{Component{"a"}})
+	assert.Equal(t, err, ErrCommandKeyChainNotSet)
+	assert.Nil(t, interests)
+
+	// Check no data was written
+	assert.Equal(t, len(transport.Buffer.Bytes()), 0)
+}
+
+func Test_Face_RegisterPrefix_NoCommandCertificateSet(t *testing.T) {
+	transport := &bufferTransport{}
+	subject := NewFace(transport)
+	keyChain := NewKeyChain()
+	subject.SetCommandSigningInfo(keyChain, Name{})
+
+	interests, err := subject.RegisterPrefix(Name{Component{"a"}})
+	assert.Equal(t, err, ErrCommandCertificateNameNotSet)
+	assert.Nil(t, interests)
+
+	// Check no data was written
+	assert.Equal(t, len(transport.Buffer.Bytes()), 0)
+}
+
+func Test_Face_RegisterPrefix_ErrorRegistering(t *testing.T) {
 	t.Error("pending")
 }

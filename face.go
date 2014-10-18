@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"time"
 
 	"github.com/paulbellamy/go-ndn/encoding"
 )
@@ -19,8 +20,16 @@ func NewFace(transport Transport) *Face {
 }
 
 type Face struct {
-	transport            Transport
-	pendingInterestTable *pendingInterestTable
+	transport                Transport
+	pendingInterestTable     *pendingInterestTable
+	commandKeyChain          *KeyChain
+	commandCertificateName   Name
+	commandInterestGenerator commandInterestGenerator
+}
+
+func (f *Face) SetCommandSigningInfo(keyChain *KeyChain, certificateName Name) {
+	f.commandKeyChain = keyChain
+	f.commandCertificateName = certificateName.Copy()
 }
 
 func (f *Face) ExpressInterest(i *Interest) (*pendingInterest, error) {
@@ -92,8 +101,32 @@ func (f *Face) Put(d *Data) error {
 	return err
 }
 
-func (f *Face) SetInterestFilter(filter InterestFilter) (<-chan *Interest, error) {
+func (f *Face) RegisterPrefix(prefix Name) (<-chan *Interest, error) {
+	if f.commandKeyChain == nil {
+		return nil, ErrCommandKeyChainNotSet
+	}
+	if f.commandCertificateName.Size() == 0 {
+		return nil, ErrCommandCertificateNameNotSet
+	}
+
+	name := Name{Component{"localhost"}, Component{"nfd"}, Component{"rib"}, Component{"register"}}
+	name = name.AppendBytes(f.registerPrefixControlParameters(prefix))
+	commandInterest := &Interest{name: name}
+	f.makeCommandInterest(commandInterest)
+	// The interest is answered by the local host, so set a short timeout.
+	commandInterest.SetInterestLifetime(2 * time.Second)
+	// make command interest
 	return nil, nil
+}
+
+func (f *Face) makeCommandInterest(i *Interest) {
+	f.commandInterestGenerator.generate(i, f.commandKeyChain, f.commandCertificateName)
+}
+
+func (f *Face) registerPrefixControlParameters(prefix Name) []byte {
+	buf := &bytes.Buffer{}
+	(&controlParameters{name: prefix}).WriteTo(buf)
+	return buf.Bytes()
 }
 
 func (f *Face) Close() error {
