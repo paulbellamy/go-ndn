@@ -4,7 +4,10 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/sha256"
-	"io"
+
+	"github.com/paulbellamy/go-ndn/encoding"
+	"github.com/paulbellamy/go-ndn/name"
+	"github.com/paulbellamy/go-ndn/packets"
 )
 
 type KeyChain struct{}
@@ -14,14 +17,13 @@ func NewKeyChain() *KeyChain {
 }
 
 type signable interface {
-	WriteTo(io.Writer) (int64, error)
-	GetName() Name
-	SetSignature(Signature)
+	GetName() name.Name
+	SetSignature(packets.Signature)
 }
 
-func (k *KeyChain) Sign(packet signable, certificateName Name) error {
+func (k *KeyChain) Sign(packet signable, certificateName name.Name, newEncoder encoding.EncoderFactory) error {
 	hash := sha256.New()
-	_, err := packet.WriteTo(hash)
+	err := newEncoder(hash).Encode(packet)
 	if err != nil {
 		return err
 	}
@@ -36,12 +38,12 @@ func (k *KeyChain) Sign(packet signable, certificateName Name) error {
 		return err
 	}
 
-	packet.SetSignature(Sha256WithRSASignature(sig))
+	packet.SetSignature(packets.Sha256WithRSASignature(sig))
 
 	return err
 }
 
 // Should ask the KeyLocator which private key to use for this name, but just generating one for now.
-func (k *KeyChain) getKey(name Name) (*rsa.PrivateKey, error) {
+func (k *KeyChain) getKey(n name.Name) (*rsa.PrivateKey, error) {
 	return rsa.GenerateKey(randSource, 2048)
 }

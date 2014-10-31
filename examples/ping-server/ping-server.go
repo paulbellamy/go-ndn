@@ -10,6 +10,9 @@ import (
 	"time"
 
 	ndn "github.com/paulbellamy/go-ndn"
+	"github.com/paulbellamy/go-ndn/encoding/tlv"
+	"github.com/paulbellamy/go-ndn/name"
+	"github.com/paulbellamy/go-ndn/packets"
 )
 
 type argSource interface {
@@ -20,18 +23,18 @@ type argSource interface {
 func address(flags argSource) string {
 	a := flags.Arg(0)
 	if a == "" {
-		usage()
+		printUsage()
 	}
 	return a
 }
 
-func usage() {
-	fmt.Println(name)
+func printUsage() {
+	fmt.Println(usage)
 	flags.PrintDefaults()
 	os.Exit(1)
 }
 
-var name = `Usage: ping-server [options] ndn:/name/prefix
+var usage = `Usage: ping-server [options] ndn:/name/prefix
 
 Ping a NDN name prefix using Interests with name ndn:/name/prefix/ping/number.
 The numbers in the Interests are randomly generated unless specified.
@@ -44,7 +47,7 @@ var defaultSocketName = "/var/run/nfd.sock"
 var defaultAddress = "192.168.59.103:6363"
 var minimumFreshnessPeriod = 1000 * time.Millisecond
 
-var flags = flag.NewFlagSet(name, flag.PanicOnError)
+var flags = flag.NewFlagSet(usage, flag.PanicOnError)
 var freshnessPeriod = flags.Duration("x", minimumFreshnessPeriod, "set FreshnessSeconds")
 var maximumPings = flags.Int("p", -1, "specify number of pings to be satisfied (>=1)")
 var printTimestamp = flags.Bool("t", false, "print timestamp")
@@ -53,13 +56,13 @@ var quietMode = flags.Bool("q", false, "quiet output")
 func parseArgs() (prefix string) {
 	defer func() {
 		if r := recover(); r != nil {
-			usage()
+			printUsage()
 		}
 	}()
 	flags.Parse(os.Args[1:])
 
 	if *freshnessPeriod < minimumFreshnessPeriod {
-		usage()
+		printUsage()
 	}
 
 	return address(flags)
@@ -82,13 +85,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	name, err := pingPacketName(prefix)
+	n, err := pingPacketName(prefix)
 	if err != nil {
 		fmt.Fprintln(errOut, err)
 		os.Exit(1)
 	}
 
-	interests, err := face.RegisterPrefix(name.AppendString("ping"))
+	interests, err := face.RegisterPrefix(n.AppendString("ping"))
 	if err != nil {
 		fmt.Fprintln(errOut, err)
 		os.Exit(1)
@@ -123,32 +126,32 @@ func newFace() (*ndn.Face, error) {
 	return ndn.NewFace(transport), nil
 }
 
-func pingPacketName(prefix string) (ndn.Name, error) {
-	name, err := ndn.ParseURI(prefix)
+func pingPacketName(prefix string) (name.Name, error) {
+	n, err := name.ParseURI(prefix)
 	if err != nil {
 		return nil, err
 	}
 
-	return name.AppendString("ping"), nil
+	return n.AppendString("ping"), nil
 }
 
-func logInterestPacket(out io.Writer, interest *ndn.Interest) {
+func logInterestPacket(out io.Writer, interest *packets.Interest) {
 	if *printTimestamp {
 		fmt.Fprint(out, time.Now().Format(time.RFC3339Nano), " - ")
 	}
 	fmt.Fprintln(out, "Interest Received - Ping Reference = ", interest.GetName().Get(-1).ToURI())
 }
 
-func respondToPing(out, errOut io.Writer, face *ndn.Face, keyChain *ndn.KeyChain, interest *ndn.Interest) {
+func respondToPing(out, errOut io.Writer, face *ndn.Face, keyChain *ndn.KeyChain, interest *packets.Interest) {
 	face.Put(dataPacket(keyChain, interest))
 }
 
-func dataPacket(keyChain *ndn.KeyChain, interest *ndn.Interest) *ndn.Data {
-	data := &ndn.Data{}
+func dataPacket(keyChain *ndn.KeyChain, interest *packets.Interest) *packets.Data {
+	data := &packets.Data{}
 	data.SetName(interest.GetName())
 	data.SetFreshnessPeriod(*freshnessPeriod)
 	data.SetContent([]byte("NDN TLV Ping Response"))
-	keyChain.Sign(data, ndn.Name{ndn.Component{"What do I put for certificate name here?"}})
+	keyChain.Sign(data, name.New(name.Component{"What do I put for certificate name here?"}), tlv.NewEncoder)
 	return data
 }
 

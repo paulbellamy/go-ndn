@@ -1,11 +1,15 @@
 package ndn
 
+import (
+	"github.com/paulbellamy/go-ndn/name"
+)
+
 type InterestFilter interface {
-	Matches(Name) bool
+	Matches(name.Name) bool
 }
 
-type PrefixInterestFilter Name
+type PrefixInterestFilter name.Name
 
-func (f PrefixInterestFilter) Matches(n Name) bool {
-	return n.GetPrefix(Name(f).Size()).Equals(Name(f))
+func (f PrefixInterestFilter) Matches(n name.Name) bool {
+	return n.GetPrefix(name.Name(f).Size()).Equals(name.Name(f))
 }

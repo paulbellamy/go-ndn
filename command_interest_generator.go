@@ -5,23 +5,26 @@ import (
 	"time"
 
 	"github.com/paulbellamy/go-ndn/encoding"
+	"github.com/paulbellamy/go-ndn/encoding/tlv"
+	"github.com/paulbellamy/go-ndn/name"
+	"github.com/paulbellamy/go-ndn/packets"
 )
 
 type commandInterestGenerator struct {
 	lastTimestamp time.Time
 }
 
-func (c *commandInterestGenerator) generate(i *Interest, keyChain *KeyChain, certificateName Name) error {
+func (c *commandInterestGenerator) generate(i *packets.Interest, keyChain *KeyChain, certificateName name.Name, encoderFactory encoding.EncoderFactory) error {
 	timestamp := c.nextTimestamp()
 
-	name := i.GetName()
-	name = c.appendTimestamp(name, timestamp)
-	name, err := c.appendRandom(name)
+	n := i.GetName()
+	n = c.appendTimestamp(n, timestamp)
+	n, err := c.appendRandom(n)
 	if err != nil {
 		return err
 	}
 
-	keyChain.Sign(i, certificateName)
+	keyChain.Sign(i, certificateName, encoderFactory)
 
 	c.setDefaultInterestLifetime(i)
 
@@ -40,19 +43,19 @@ func (c *commandInterestGenerator) nextTimestamp() time.Time {
 	return t
 }
 
-func (c *commandInterestGenerator) appendTimestamp(name Name, timestamp time.Time) Name {
+func (c *commandInterestGenerator) appendTimestamp(n name.Name, timestamp time.Time) name.Name {
 	buf := &bytes.Buffer{}
-	encoding.WriteUint(buf, uint64(timestamp.UnixNano()/int64(time.Millisecond)))
-	return name.AppendBytes(buf.Bytes())
+	tlv.WriteUint(buf, uint64(timestamp.UnixNano()/int64(time.Millisecond)))
+	return n.AppendBytes(buf.Bytes())
 }
 
-func (c *commandInterestGenerator) appendRandom(name Name) (Name, error) {
+func (c *commandInterestGenerator) appendRandom(n name.Name) (name.Name, error) {
 	randomBuffer := make([]byte, 8)
 	_, err := randSource.Read(randomBuffer)
-	return name.AppendBytes(randomBuffer), err
+	return n.AppendBytes(randomBuffer), err
 }
 
-func (c *commandInterestGenerator) setDefaultInterestLifetime(i *Interest) {
+func (c *commandInterestGenerator) setDefaultInterestLifetime(i *packets.Interest) {
 	if i.GetInterestLifetime() < 0 {
 		// Caller hasn't set this yet, set a default
 		i.SetInterestLifetime(1 * time.Second)

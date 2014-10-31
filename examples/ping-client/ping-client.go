@@ -11,6 +11,8 @@ import (
 	"time"
 
 	ndn "github.com/paulbellamy/go-ndn"
+	"github.com/paulbellamy/go-ndn/name"
+	"github.com/paulbellamy/go-ndn/packets"
 )
 
 type argSource interface {
@@ -21,18 +23,18 @@ type argSource interface {
 func address(flags argSource) string {
 	a := flags.Arg(0)
 	if a == "" {
-		usage()
+		printUsage()
 	}
 	return a
 }
 
-func usage() {
-	fmt.Println(name)
+func printUsage() {
+	fmt.Println(usage)
 	flags.PrintDefaults()
 	os.Exit(1)
 }
 
-var name = `Usage: ping-client [options] ndn:/name/prefix
+var usage = `Usage: ping-client [options] ndn:/name/prefix
 
 Ping a NDN name prefix using Interests with name ndn:/name/prefix/ping/number.
 The numbers in the Interests are randomly generated unless specified.
@@ -46,7 +48,7 @@ var defaultAddress = "192.168.59.103:6363"
 var minimumPingInterval = 1000 * time.Millisecond
 var pingTimeoutThreshold = 4000 * time.Millisecond
 
-var flags = flag.NewFlagSet(name, flag.PanicOnError)
+var flags = flag.NewFlagSet(usage, flag.PanicOnError)
 var pingInterval = flags.Duration("i", minimumPingInterval, fmt.Sprintf("set ping interval in seconds (minimum %v)", minimumPingInterval))
 var totalPings = flags.Int("c", -1, "set total number of pings")
 var startPingNumber = flags.Int("n", -1, "set the starting number, the number is incremented by 1 after each Interest")
@@ -58,13 +60,13 @@ var quietMode = flags.Bool("q", false, "quiet output")
 func parseArgs() (prefix string) {
 	defer func() {
 		if r := recover(); r != nil {
-			usage()
+			printUsage()
 		}
 	}()
 	flags.Parse(os.Args[1:])
 
 	if *pingInterval < minimumPingInterval {
-		usage()
+		printUsage()
 	}
 
 	if *startPingNumber < 0 {
@@ -109,24 +111,24 @@ func main() {
 	}
 }
 
-func pingPacketName(prefix string, nextPingNumber int) (ndn.Name, error) {
-	name, err := ndn.ParseURI(prefix)
+func pingPacketName(prefix string, nextPingNumber int) (name.Name, error) {
+	n, err := name.ParseURI(prefix)
 	if err != nil {
 		return nil, err
 	}
 
-	name = name.AppendString("ping")
+	n = n.AppendString("ping")
 	if *clientIdentifier != 0 {
-		name = name.AppendString(fmt.Sprint(*clientIdentifier))
+		n = n.AppendString(fmt.Sprint(*clientIdentifier))
 	}
-	name = name.AppendString(fmt.Sprint(nextPingNumber))
-	return name, nil
+	n = n.AppendString(fmt.Sprint(nextPingNumber))
+	return n, nil
 }
 
-func interestPacket(prefix string, nextPingNumber int) (*ndn.Interest, error) {
-	name, err := pingPacketName(prefix, nextPingNumber)
-	interest := &ndn.Interest{}
-	interest.SetName(name)
+func interestPacket(prefix string, nextPingNumber int) (*packets.Interest, error) {
+	n, err := pingPacketName(prefix, nextPingNumber)
+	interest := &packets.Interest{}
+	interest.SetName(n)
 	interest.SetMustBeFresh(!*allowCaching)
 	interest.SetInterestLifetime(pingTimeoutThreshold)
 	return interest, err

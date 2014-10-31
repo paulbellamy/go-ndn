@@ -1,9 +1,13 @@
 package ndn
 
-import "io"
+import (
+	"io"
+
+	"github.com/paulbellamy/go-ndn/name"
+)
 
 type controlParameters struct {
-	name Name
+	name name.Name
 }
 
 // TODO: Implement this
