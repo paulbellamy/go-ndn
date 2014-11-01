@@ -1,71 +1,14 @@
 package tlv
 
-import (
-	"io"
+// Name ::= NAME-TYPE TLV-LENGTH NameComponent*
+var Name = tlv(NameType, zeroOrMore(NameComponent))
 
-	"github.com/paulbellamy/go-ndn/encoding"
-	"github.com/paulbellamy/go-ndn/name"
-)
+// NameComponent ::= GenericNameComponent | ImplicitSha256DigestComponent
+var NameComponent = or(GenericNameComponent, ImplicitSha256DigestComponent)
 
-func marshalName(n name.Name) TLV {
-	componentTLVs := []TLV{}
-	for _, component := range n {
-		componentTLVs = append(componentTLVs, marshalComponent(component))
-	}
-	return ParentTLV{NameType, componentTLVs}
-}
+// GenericNameComponent ::= NAME-COMPONENT-TYPE TLV-LENGTH BYTE*
+var GenericNameComponent = tlv(NameComponentType, Bytes)
 
-func unmarshalName(r io.Reader) (n name.Name, err error) {
-	parentTLV, err := readParentTLV(r)
-	if err != nil {
-		return n, err
-	}
-
-	if parentTLV.T != NameType {
-		return n, &encoding.InvalidUnmarshalError{Message: "name tlv expected"}
-	}
-
-	for _, component := range parentTLV.V {
-		component, ok := component.(ByteTLV)
-		if !ok || component.T != NameComponentType {
-			return n, &encoding.InvalidUnmarshalError{Message: "name component tlv expected"}
-		}
-
-		n = n.AppendBytes(component.V)
-	}
-	return n, err
-}
-
-/*
-func NameFromTLV(t tlv.TLV) (n Name, err error) {
-	if t.Type() != tlv.NameType {
-		err = ErrTLVIsNotAName
-		return
-	}
-	parent, ok := t.(tlv.ParentTLV)
-	if !ok {
-		err = ErrTLVIsNotAName
-		return
-	}
-
-	for _, component := range parent.V {
-		c, ok := component.(tlv.ByteTLV)
-		if !ok {
-			err = ErrTLVIsNotAName
-			return
-		}
-
-		n = append(n, Component{string(c.V)})
-	}
-
-	return
-}
-
-func (n Name) toTLV() tlv.TLV {
-	componentTLVs := []tlv.TLV{}
-	for _, component := range n {
-		componentTLVs = append(componentTLVs, component.toTLV())
-	}
-	return tlv.ParentTLV{tlv.NameType, componentTLVs}
-}
-*/
+// ImplicitSha256DigestComponent ::= IMPLICIT-SHA256-DIGEST-COMPONENT-TYPE TLV-LENGTH(=32)
+// 																		BYTE{32}
+var ImplicitSha256DigestComponent = tlv(ImplicitSha256DigestComponentType, Bytes(32))

@@ -1,46 +1,38 @@
 package tlv
 
-import (
-	"github.com/paulbellamy/go-ndn/encoding"
-	"github.com/paulbellamy/go-ndn/packets"
+// Data ::= DATA-TLV TLV-LENGTH
+//            Name
+//            MetaInfo
+//            Content
+//            Signature
+var Data = tlv(DataType,
+	Name,
+	MetaInfo,
+	Content,
+	Signature,
 )
 
-func marshalDataPacket(d *packets.Data) (TLV, error) {
-	if d.GetName().IsBlank() {
-		return nil, &encoding.NameRequiredError{}
-	}
+// MetaInfo ::= META-INFO-TYPE TLV-LENGTH
+//                ContentType?
+//                FreshnessPeriod?
+//                FinalBlockId?
+var MetaInfo = tlv(MetaInfoType,
+	maybe(ContentTypeParser),
+	maybe(FreshnessPeriod),
+	maybe(FinalBlockID),
+)
 
-	children := []TLV{marshalName(d.GetName())}
+// ContentType ::= CONTENT-TYPE-TYPE TLV-LENGTH
+//                   nonNegativeInteger
+var ContentTypeParser = tlv(ContentTypeType, nonNegativeInteger)
 
-	metaInfoTLV, err := marshalMetaInfo(d.MetaInfo)
-	if err != nil {
-		return nil, err
-	}
-	children = append(children, metaInfoTLV)
+// FreshnessPeriod ::= FRESHNESS-PERIOD-TLV TLV-LENGTH
+//                       nonNegativeInteger
+var FreshnessPeriod = tlv(FreshnessPeriodType, nonNegativeInteger)
 
-	contentTLV, err := marshalContent(d.GetContent())
-	if err != nil {
-		return nil, err
-	}
-	children = append(children, contentTLV)
+// FinalBlockId ::= FINAL-BLOCK-ID-TLV TLV-LENGTH
+//                       NameComponent
+var FinalBlockID = tlv(FinalBlockIdType, NameComponent)
 
-	signatureTLVs, err := marshalSignature(d.GetSignature())
-	if err != nil {
-		return nil, err
-	}
-	children = append(children, signatureTLVs...)
-
-	return ParentTLV{DataType, children}, nil
-}
-
-func marshalMetaInfo(m packets.MetaInfo) (TLV, error) {
-	return ParentTLV{MetaInfoType, []TLV{}}, nil
-}
-
-func marshalContent(c []byte) (TLV, error) {
-	return ByteTLV{ContentType, c}, nil
-}
-
-func unmarshalDataPacket(v interface{}, b []byte) error {
-	return nil
-}
+// Content ::= CONTENT-TYPE TLV-LENGTH BYTE*
+var Content = tlv(ContentType, Bytes)

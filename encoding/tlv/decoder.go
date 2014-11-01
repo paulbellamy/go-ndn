@@ -29,14 +29,16 @@ func (r *Decoder) Decode(v interface{}) error {
 		return err
 	}
 
-	switch rawTLV.Type() {
-	case InterestType:
-		return unmarshalInterestPacket(rv, rawTLV.V)
-	case DataType:
-		return unmarshalDataPacket(rv, rawTLV.V)
-	default:
-		return &encoding.InvalidUnmarshalError{fmt.Sprintf("tlv: unexpected tlv type %d", rawTLV.Type())}
-	}
+	/*
+		switch rawTLV.Type() {
+		case InterestType:
+			return unmarshalInterestPacket(rv, rawTLV.V)
+		case DataType:
+			return unmarshalDataPacket(rv, rawTLV.V)
+		default:
+	*/
+	return &encoding.InvalidUnmarshalError{fmt.Sprintf("tlv: unexpected tlv type %d", rawTLV.Type())}
+	//}
 }
 
 func (r *Decoder) isParentTLV(t uint64) bool {

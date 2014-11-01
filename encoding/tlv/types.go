@@ -1,13 +1,16 @@
 package tlv
 
+import "io"
+
 const (
 	// Packet Types
 	InterestType uint64 = 0x05
 	DataType     uint64 = 0x06
 
 	// Common Fields
-	NameType          uint64 = 0x07
-	NameComponentType uint64 = 0x08
+	NameType                          uint64 = 0x07
+	NameComponentType                 uint64 = 0x08
+	ImplicitSha256DigestComponentType uint64 = 0x01
 
 	// Interest Packet
 	SelectorsType        uint64 = 0x09
@@ -41,90 +44,86 @@ const (
 	KeyDigestType     uint64 = 0x1D
 )
 
-var tlvTypeFactories = map[uint64]string{
+type valueReader interface {
+	io.ReaderFrom
+	io.WriterTo
+}
+
+type valueReaderFactory func() valueReader
+
+type ChildrenValue []TLV
+
+func (v ChildrenValue) ReadFrom(r io.Reader) (int64, error) {
+	return 0, nil
+}
+func (v ChildrenValue) WriteTo(w io.Writer) (int64, error) {
+	return 0, nil
+}
+func ChildrenReader() valueReader {
+	return ChildrenValue{}
+}
+
+type UintValue []TLV
+
+func (v UintValue) ReadFrom(r io.Reader) (int64, error) {
+	return 0, nil
+}
+func (v UintValue) WriteTo(w io.Writer) (int64, error) {
+	return 0, nil
+}
+func UintReader() valueReader {
+	return UintValue{}
+}
+
+type BytesValue []TLV
+
+func (v BytesValue) ReadFrom(r io.Reader) (int64, error) {
+	return 0, nil
+}
+func (v BytesValue) WriteTo(w io.Writer) (int64, error) {
+	return 0, nil
+}
+func BytesReader() valueReader {
+	return BytesValue{}
+}
+
+var valueReaders = map[uint64]valueReaderFactory{
 	// Packet Types
-	InterestType: "ParentTLV",
-	DataType:     "ParentTLV",
+	InterestType: ChildrenReader,
+	DataType:     ChildrenReader,
 
 	// Common Fields
-	NameType:          "ParentTLV",
-	NameComponentType: "ByteTLV",
+	NameType:          ChildrenReader,
+	NameComponentType: BytesReader,
 
 	// Interest Packet
-	SelectorsType:        "ParentTLV",
-	NonceType:            "ByteTLV",
-	ScopeType:            "UintTLV",
-	InterestLifetimeType: "UintTLV",
+	SelectorsType:        ChildrenReader,
+	NonceType:            BytesReader,
+	ScopeType:            UintReader,
+	InterestLifetimeType: UintReader,
 
 	// Interest/Selectors
-	MinSuffixComponentsType:       "UintTLV",
-	MaxSuffixComponentsType:       "UintTLV",
-	PublisherPublicKeyLocatorType: "ParentTLV",
-	ExcludeType:                   "ParentTLV",
-	ChildSelectorType:             "UintTLV",
-	MustBeFreshType:               "ByteTLV",
-	AnyType:                       "ByteTLV",
+	MinSuffixComponentsType:       UintReader,
+	MaxSuffixComponentsType:       UintReader,
+	PublisherPublicKeyLocatorType: ChildrenReader,
+	ExcludeType:                   ChildrenReader,
+	ChildSelectorType:             UintReader,
+	MustBeFreshType:               BytesReader,
+	AnyType:                       BytesReader,
 
 	// Data Packet
-	MetaInfoType:       "ParentTLV",
-	ContentType:        "ByteTLV",
-	SignatureInfoType:  "ParentTLV",
-	SignatureValueType: "ByteTLV",
+	MetaInfoType:       ChildrenReader,
+	ContentType:        BytesReader,
+	SignatureInfoType:  ChildrenReader,
+	SignatureValueType: BytesReader,
 
 	// Data/MetaInfo
-	ContentTypeType:     "UintTLV",
-	FreshnessPeriodType: "UintTLV",
-	FinalBlockIdType:    "ParentTLV",
+	ContentTypeType:     UintReader,
+	FreshnessPeriodType: UintReader,
+	FinalBlockIdType:    ChildrenReader,
 
 	// Data/Signature
-	SignatureTypeType: "UintTLV",
-	KeyLocatorType:    "ParentTLV",
-	KeyDigestType:     "ByteTLV",
+	SignatureTypeType: UintReader,
+	KeyLocatorType:    ChildrenReader,
+	KeyDigestType:     BytesReader,
 }
-
-type parser interface{}
-
-var nonNegativeInteger parser
-var bytes parser
-var empty = exactBytes(0)
-
-func exactBytes(length int) parser {
-	return parser{}
-}
-
-func tlv(t uint64, p ...parser) parser {
-	return p
-}
-
-// zero-or-more sequences repeated
-func many(p ...parser) parser {
-	return p
-}
-
-// one-or-more sequences repeated
-func oneOrMore(p ...parser) parser {
-	return p
-}
-
-// first parser to match
-func or(p parser, ps ...parser) parser {
-	return p
-}
-
-// zero-or-one matches
-func maybe(p parser) parser {
-	return p
-}
-
-// Name ::= NAME-TYPE TLV-LENGTH NameComponent*
-var name = tlv(NameType, many(nameComponent))
-
-// NameComponent ::= GenericNameComponent | ImplicitSha256DigestComponent
-var nameComponent = or(genericNameComponent, implicitSha256DigestComponent)
-
-// GenericNameComponent ::= NAME-COMPONENT-TYPE TLV-LENGTH BYTE*
-var genericNameComponent = tlv(NameComponentType, bytes)
-
-// ImplicitSha256DigestComponent ::= IMPLICIT-SHA256-DIGEST-COMPONENT-TYPE TLV-LENGTH(=32)
-// 																		BYTE{32}
-var implicitSha256DigestComponent = tlv(ImplicitSha256DigestComponent, exactBytes(32))
