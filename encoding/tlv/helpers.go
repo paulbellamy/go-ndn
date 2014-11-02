@@ -95,7 +95,21 @@ func times(n int, p parser) parser {
 }
 
 func exactly(bs ...byte) parser {
-	return seq()
+	return exactlyParser(bs)
+}
+
+type exactlyParser []byte
+
+func (p exactlyParser) Parse(input []byte) (interface{}, []byte, error) {
+	if len(input) < len(p) {
+		return nil, input, io.ErrUnexpectedEOF
+	}
+	for i, b := range p {
+		if input[i] != b {
+			return nil, input, io.ErrUnexpectedEOF
+		}
+	}
+	return input[:len(p)], input[len(p):], nil
 }
 
 type tlvParser struct {

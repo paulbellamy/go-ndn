@@ -283,3 +283,31 @@ func Test_Maybe_Long(t *testing.T) {
 	assert.Equal(t, rest, []byte{0x5})
 	assert.Equal(t, result, []byte{0x1, 0x2, 0x3, 0x4})
 }
+
+func Test_Exactly(t *testing.T) {
+	result, rest, err := exactly(0x1, 0x2).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []byte{0x1, 0x2})
+}
+
+func Test_Exactly_NotMatched(t *testing.T) {
+	result, rest, err := exactly(0x2).Parse([]byte{0x1})
+	assert.Equal(t, err, io.ErrUnexpectedEOF)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Nil(t, result)
+}
+
+func Test_Exactly_Short(t *testing.T) {
+	result, rest, err := exactly(0x1, 0x2).Parse([]byte{0x1})
+	assert.Equal(t, err, io.ErrUnexpectedEOF)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Nil(t, result)
+}
+
+func Test_Exactly_Long(t *testing.T) {
+	result, rest, err := exactly(0x1, 0x2, 0x3, 0x4).Parse([]byte{0x1, 0x2, 0x3, 0x4, 0x5})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x5})
+	assert.Equal(t, result, []byte{0x1, 0x2, 0x3, 0x4})
+}
