@@ -62,6 +62,9 @@ type seqParser []parser
 
 // A sequence of things which must all match
 func seq(ps ...parser) parser {
+	if len(ps) == 1 {
+		return ps[0]
+	}
 	return seqParser(ps)
 }
 
@@ -76,13 +79,19 @@ func (s seqParser) Parse(body []byte) (interface{}, []byte, error) {
 			return nil, body, err
 		}
 
-		result = append(result, item)
+		if item != nil {
+			result = append(result, item)
+		}
 	}
 	return result, rest, nil
 }
 
 func times(n int, p parser) parser {
-	return seq()
+	ps := []parser{}
+	for i := 0; i < n; i++ {
+		ps = append(ps, p)
+	}
+	return seq(ps...)
 }
 
 func exactly(bs ...byte) parser {
@@ -95,13 +104,7 @@ type tlvParser struct {
 }
 
 func tlv(t uint64, ps ...parser) parser {
-	var p parser
-	if len(ps) > 1 {
-		p = seq(ps...)
-	} else if len(ps) == 1 {
-		p = ps[0]
-	}
-	return tlvParser{t: t, p: p}
+	return tlvParser{t: t, p: seq(ps...)}
 }
 
 func (p tlvParser) Parse(input []byte) (interface{}, []byte, error) {
@@ -136,20 +139,87 @@ func (p tlvParser) Parse(input []byte) (interface{}, []byte, error) {
 
 // zero-or-more repetitions of this seq
 func zeroOrMore(ps ...parser) parser {
-	return seq(ps...)
+	return zeroOrMoreParser{seq(ps...)}
+}
+
+type zeroOrMoreParser struct {
+	parser
+}
+
+func (p zeroOrMoreParser) Parse(input []byte) (interface{}, []byte, error) {
+	found := []interface{}{}
+	rest := input
+	var err error
+	for {
+		var item interface{}
+		item, rest, err = p.parser.Parse(rest)
+		if err != nil {
+			if err == io.ErrUnexpectedEOF {
+				break
+			}
+			return nil, input, err
+		}
+		found = append(found, item)
+	}
+	return found, rest, nil
 }
 
 // one-or-more repetitions of this seq
 func oneOrMore(ps ...parser) parser {
-	return seq(ps...)
+	return oneOrMoreParser{seq(ps...)}
+}
+
+type oneOrMoreParser struct {
+	parser
+}
+
+func (p oneOrMoreParser) Parse(input []byte) (interface{}, []byte, error) {
+	found := []interface{}{}
+	rest := input
+	var err error
+	for {
+		var item interface{}
+		item, rest, err = p.parser.Parse(rest)
+		if err != nil {
+			if err == io.ErrUnexpectedEOF {
+				break
+			}
+			return nil, input, err
+		}
+		found = append(found, item)
+	}
+	if len(found) == 0 {
+		return nil, input, io.ErrUnexpectedEOF
+	}
+	return found, rest, nil
 }
 
 // first parser to match
 func or(p parser, ps ...parser) parser {
-	return p
+	result := orParser{p}
+	result = append(result, ps...)
+	return result
+}
+
+type orParser []parser
+
+func (ps orParser) Parse(input []byte) (interface{}, []byte, error) {
+	for _, p := range ps {
+		item, rest, err := p.Parse(input)
+		if err == nil {
+			return item, rest, err
+		}
+	}
+	return nil, input, io.ErrUnexpectedEOF
 }
 
 // zero-or-one matches
 func maybe(p parser) parser {
-	return p
+	return parserFunc(func(input []byte) (interface{}, []byte, error) {
+		result, rest, err := p.Parse(input)
+		if err == io.ErrUnexpectedEOF {
+			err = nil
+		}
+		return result, rest, err
+	})
 }

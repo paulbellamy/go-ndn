@@ -74,6 +74,20 @@ func Test_Seq(t *testing.T) {
 	assert.Equal(t, result, []interface{}{[]byte("abcd"), uint64('1')})
 }
 
+func Test_Seq_OneParser(t *testing.T) {
+	result, rest, err := seq(Bytes(4)).Parse([]byte("abcd1"))
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{'1'})
+	assert.Equal(t, result, []byte("abcd"))
+}
+
+func Test_Seq_EliminatesNils(t *testing.T) {
+	result, rest, err := seq(Bytes(4), maybe(Byte), maybe(Byte)).Parse([]byte("abcd"))
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []interface{}{[]byte("abcd")})
+}
+
 func Test_Seq_Short(t *testing.T) {
 	result, rest, err := seq(Bytes(1), nonNegativeInteger).Parse([]byte("a"))
 	assert.Equal(t, err, io.ErrUnexpectedEOF)
@@ -142,4 +156,130 @@ func Test_Empty_Long(t *testing.T) {
 	assert.Equal(t, err, &encoding.InvalidUnmarshalError{Message: "unexpected bytes"})
 	assert.Equal(t, rest, []byte{0xff, 2, 3})
 	assert.Nil(t, result)
+}
+
+func Test_Times(t *testing.T) {
+	result, rest, err := times(2, Byte).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []interface{}{byte(0x1), byte(0x2)})
+}
+
+func Test_Times_Short(t *testing.T) {
+	result, rest, err := times(2, Byte).Parse([]byte{0x1})
+	assert.Equal(t, err, io.ErrUnexpectedEOF)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Nil(t, result)
+}
+
+func Test_Times_Long(t *testing.T) {
+	result, rest, err := times(2, Byte).Parse([]byte{0x1, 0x2, 0x3, 0x4})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x3, 0x4})
+	assert.Equal(t, result, []interface{}{byte(0x1), byte(0x2)})
+}
+
+func Test_ZeroOrMore(t *testing.T) {
+	result, rest, err := zeroOrMore(Byte, Byte).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []interface{}{[]interface{}{byte(0x1), byte(0x2)}})
+}
+
+func Test_ZeroOrMore_Short(t *testing.T) {
+	result, rest, err := zeroOrMore(Byte, Byte).Parse([]byte{0x1})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Equal(t, result, []interface{}{})
+}
+
+func Test_ZeroOrMore_Long(t *testing.T) {
+	result, rest, err := zeroOrMore(Byte, Byte).Parse([]byte{0x1, 0x2, 0x3, 0x4, 0x5})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x5})
+	assert.Equal(t, result, []interface{}{[]interface{}{byte(0x1), byte(0x2)}, []interface{}{byte(0x3), byte(0x4)}})
+}
+
+func Test_ZeroOrMore_OneParser(t *testing.T) {
+	result, rest, err := zeroOrMore(Byte).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []interface{}{byte(0x1), byte(0x2)})
+}
+
+func Test_OneOrMore(t *testing.T) {
+	result, rest, err := oneOrMore(Byte, Byte).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []interface{}{[]interface{}{byte(0x1), byte(0x2)}})
+}
+
+func Test_OneOrMore_Short(t *testing.T) {
+	result, rest, err := oneOrMore(Byte, Byte).Parse([]byte{0x1})
+	assert.Equal(t, err, io.ErrUnexpectedEOF)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Nil(t, result)
+}
+
+func Test_OneOrMore_Long(t *testing.T) {
+	result, rest, err := oneOrMore(Byte, Byte).Parse([]byte{0x1, 0x2, 0x3, 0x4, 0x5})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x5})
+	assert.Equal(t, result, []interface{}{[]interface{}{byte(0x1), byte(0x2)}, []interface{}{byte(0x3), byte(0x4)}})
+}
+
+func Test_OneOrMore_OneParser(t *testing.T) {
+	result, rest, err := oneOrMore(Byte).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []interface{}{byte(0x1), byte(0x2)})
+}
+
+func Test_Or(t *testing.T) {
+	result, rest, err := or(Bytes(4), Byte).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x2})
+	assert.Equal(t, result, byte(0x1))
+}
+
+func Test_Or_NoneMatch(t *testing.T) {
+	result, rest, err := or(Bytes(4), Bytes(3)).Parse([]byte{0x1})
+	assert.Equal(t, err, io.ErrUnexpectedEOF)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Nil(t, result)
+}
+
+func Test_Or_Long(t *testing.T) {
+	result, rest, err := or(Bytes(4), Bytes(2)).Parse([]byte{0x1, 0x2, 0x3, 0x4, 0x5})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x5})
+	assert.Equal(t, result, []byte{0x1, 0x2, 0x3, 0x4})
+}
+
+func Test_Or_OneParser(t *testing.T) {
+	result, rest, err := or(Byte).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x2})
+	assert.Equal(t, result, byte(0x1))
+}
+
+func Test_Maybe(t *testing.T) {
+	result, rest, err := maybe(Bytes(2)).Parse([]byte{0x1, 0x2})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, []byte{0x1, 0x2})
+}
+
+func Test_Maybe_NotMatched(t *testing.T) {
+	result, rest, err := maybe(Bytes(4)).Parse([]byte{0x1})
+	assert.Equal(t, err, nil)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Nil(t, result)
+}
+
+func Test_Maybe_Long(t *testing.T) {
+	result, rest, err := maybe(Bytes(4)).Parse([]byte{0x1, 0x2, 0x3, 0x4, 0x5})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{0x5})
+	assert.Equal(t, result, []byte{0x1, 0x2, 0x3, 0x4})
 }
