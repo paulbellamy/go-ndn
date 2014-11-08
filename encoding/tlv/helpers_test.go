@@ -1,6 +1,7 @@
 package tlv
 
 import (
+	"fmt"
 	"io"
 	"testing"
 
@@ -33,7 +34,7 @@ func Test_tlv_Small(t *testing.T) {
 func Test_tlv_ChecksType(t *testing.T) {
 	input := []byte{byte(DataType), 5, byte(NameComponentType), 3, 'f', 'o', 'o'}
 	result, rest, err := tlv(NameType, zeroOrMore(NameComponent)).Parse(input)
-	assert.EqualError(t, err, "unexpected tlv type")
+	assert.EqualError(t, err, fmt.Sprintf("unexpected tlv type %d, expected %d", DataType, NameType))
 	assert.Equal(t, rest, input)
 	assert.Nil(t, result)
 }
@@ -292,6 +293,13 @@ func Test_Maybe(t *testing.T) {
 
 func Test_Maybe_NotMatched(t *testing.T) {
 	result, rest, err := maybe(Bytes(4)).Parse([]byte{0x1})
+	assert.Equal(t, err, nil)
+	assert.Equal(t, rest, []byte{0x1})
+	assert.Nil(t, result)
+}
+
+func Test_Maybe_OtherError(t *testing.T) {
+	result, rest, err := maybe(tlv(4)).Parse([]byte{0x1})
 	assert.Equal(t, err, nil)
 	assert.Equal(t, rest, []byte{0x1})
 	assert.Nil(t, result)

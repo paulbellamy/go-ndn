@@ -100,29 +100,35 @@ func appendInterestName(t []TLV, packet interface{}) ([]TLV, error) {
 func appendInterestSelectors(t []TLV, packet interface{}) ([]TLV, error) {
 	p := packet.(*packets.Interest)
 
+	v := []TLV{}
+
 	if m := p.GetMinSuffixComponents(); m != -1 {
-		t = append(t, GenericTLV{T: MinSuffixComponentsType, V: uint64(m)})
+		v = append(v, GenericTLV{T: MinSuffixComponentsType, V: uint64(m)})
 	}
 
 	if m := p.GetMaxSuffixComponents(); m != -1 {
-		t = append(t, GenericTLV{T: MaxSuffixComponentsType, V: uint64(m)})
+		v = append(v, GenericTLV{T: MaxSuffixComponentsType, V: uint64(m)})
 	}
 
 	// TODO: PublisherPublicKeyLocator here
 
 	if e := p.GetExclude(); e != nil {
-		t = append(t, marshalExclude(e))
+		v = append(v, marshalExclude(e))
 	}
 
 	if s := p.GetChildSelector(); s != -1 {
-		t = append(t, GenericTLV{T: ChildSelectorType, V: uint64(s)})
+		v = append(v, GenericTLV{T: ChildSelectorType, V: uint64(s)})
 	}
 
 	if p.GetMustBeFresh() {
-		t = append(t, GenericTLV{T: MustBeFreshType, V: []byte{}})
+		v = append(v, GenericTLV{T: MustBeFreshType, V: []byte{}})
 	}
 
-	return t, nil
+	if len(v) > 0 {
+		return append(t, GenericTLV{T: SelectorsType, V: v}), nil
+	} else {
+		return t, nil
+	}
 }
 
 func marshalExclude(e *name.Exclude) TLV {

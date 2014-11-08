@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/paulbellamy/go-ndn/encoding"
 	"github.com/paulbellamy/go-ndn/name"
 	"github.com/paulbellamy/go-ndn/packets"
 	"github.com/stretchr/testify/assert"
@@ -136,9 +135,98 @@ func Test_ReadUintTLV_EightOctetValue(t *testing.T) {
 }
 */
 
+func Test_Decoder_InterestPacket(t *testing.T) {
+	buf := bytes.NewReader([]byte{
+		byte(InterestType), 40,
+		// Name
+		byte(NameType), 5,
+		byte(NameComponentType), 3, 'f', 'o', 'o',
+		// Selectors?
+		byte(SelectorsType), 18,
+		//   MinSuffixComponents?
+		byte(MinSuffixComponentsType), 1, 1,
+		//   MaxSuffixComponents?
+		byte(MaxSuffixComponentsType), 1, 1,
+		//   PublisherPublicKeyLocator? (not for now)
+		//   Exclude?
+		byte(ExcludeType), 5, byte(AnyType), 0, byte(NameComponentType), 1, 'a',
+		//   ChildSelector?
+		byte(ChildSelectorType), 1, 0,
+		//   MustBeFresh?
+		byte(MustBeFreshType), 0,
+		// Nonce
+		byte(NonceType), 4, 'a', 'b', 'c', 'd',
+		// Scope?
+		byte(ScopeType), 1, 1,
+		// InterestLifetime? (1000ms)
+		byte(InterestLifetimeType), 2, 0x03, 0xe8,
+	})
+
+	packet, err := NewDecoder(buf).Decode()
+	assert.NoError(t, err)
+	if packet == nil {
+		t.Fatal("Expected packet not to be nil")
+	}
+
+	interest, ok := packet.(*packets.Interest)
+	assert.True(t, ok)
+	assert.Equal(t, name.New(name.Component{"foo"}), interest.GetName())
+	assert.Equal(t, 1, interest.GetMinSuffixComponents())
+	assert.Equal(t, 1, interest.GetMaxSuffixComponents())
+	//assert.Equal(t, , interest.GetPublisherPublicKeyLocator()))
+	assert.Equal(t, &name.Exclude{name.Any, name.Component{"a"}}, interest.GetExclude())
+	assert.Equal(t, 0, interest.GetChildSelector())
+	assert.Equal(t, true, interest.GetMustBeFresh())
+	assert.Equal(t, [4]byte{'a', 'b', 'c', 'd'}, interest.GetNonce())
+	assert.Equal(t, 1, interest.GetScope())
+	assert.Equal(t, 1*time.Second, interest.GetInterestLifetime())
+}
+
+func Test_Decoder_InterestPacket_Minimal(t *testing.T) {
+	buf := bytes.NewReader([]byte{
+		byte(InterestType), 13,
+		// Name
+		byte(NameType), 5,
+		byte(NameComponentType), 3, 'f', 'o', 'o',
+		// Nonce
+		byte(NonceType), 4, 'a', 'b', 'c', 'd',
+	})
+
+	packet, err := NewDecoder(buf).Decode()
+	assert.NoError(t, err)
+	if packet == nil {
+		t.Fatal("Expected packet not to be nil")
+	}
+
+	interest, ok := packet.(*packets.Interest)
+	assert.True(t, ok)
+	assert.Equal(t, name.New(name.Component{"foo"}), interest.GetName())
+	assert.Equal(t, -1, interest.GetMinSuffixComponents())
+	assert.Equal(t, -1, interest.GetMaxSuffixComponents())
+	//assert.Equal(t, , interest.GetPublisherPublicKeyLocator()))
+	assert.Nil(t, interest.GetExclude())
+	assert.Equal(t, -1, interest.GetChildSelector())
+	assert.Equal(t, true, interest.GetMustBeFresh())
+	assert.Equal(t, [4]byte{'a', 'b', 'c', 'd'}, interest.GetNonce())
+	assert.Equal(t, -1, interest.GetScope())
+	assert.Equal(t, -1, interest.GetInterestLifetime())
+}
+
+func Test_Decoder_InterestPacket_UnderflowBytes(t *testing.T) {
+	buf := bytes.NewReader([]byte{
+		byte(InterestType), 2,
+		// Name
+		byte(NameType), 5,
+	})
+
+	packet, err := NewDecoder(buf).Decode()
+	assert.Equal(t, err, io.ErrUnexpectedEOF)
+	assert.Nil(t, packet)
+}
+
 func Test_Decoder_DataPacket(t *testing.T) {
 	buf := bytes.NewReader([]byte{
-		byte(DataType), 47,
+		byte(DataType), 75,
 		byte(NameType), 5,
 		byte(NameComponentType), 3, 'f', 'o', 'o',
 		byte(MetaInfoType), 14,
@@ -147,8 +235,12 @@ func Test_Decoder_DataPacket(t *testing.T) {
 		byte(FinalBlockIdType), 5, byte(NameComponentType), 3, 'f', 'o', 'o',
 		byte(ContentType), 11, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd',
 		byte(SignatureInfoType), 3,
-		byte(SignatureTypeType), 1, 1, /* Sha256WithRSASignature */
-		byte(SignatureValueType), 4, 'a', 'b', 'c', 'd',
+		byte(SignatureTypeType), 1, 0, /* DigestSha256 */
+		byte(SignatureValueType), 32,
+		'a', 'b', 'c', 'd', 'a', 'b', 'c', 'd',
+		'a', 'b', 'c', 'd', 'a', 'b', 'c', 'd',
+		'a', 'b', 'c', 'd', 'a', 'b', 'c', 'd',
+		'a', 'b', 'c', 'd', 'a', 'b', 'c', 'd',
 	})
 
 	packet, err := NewDecoder(buf).Decode()
@@ -164,7 +256,7 @@ func Test_Decoder_DataPacket(t *testing.T) {
 	assert.Equal(t, 1*time.Second, data.GetFreshnessPeriod())
 	assert.Equal(t, name.Component{"foo"}, data.GetFinalBlockID())
 	assert.Equal(t, []byte("hello world"), data.GetContent())
-	assert.Equal(t, packets.Sha256WithRSASignature("abcd"), data.GetSignature())
+	assert.Equal(t, packets.DigestSha256("abcdabcdabcdabcdabcdabcdabcdabcd"), data.GetSignature())
 }
 
 func Test_Decoder_DataPacket_Minimal(t *testing.T) {
@@ -207,23 +299,5 @@ func Test_Decoder_DataPacket_UnderflowBytes(t *testing.T) {
 
 	packet, err := NewDecoder(buf).Decode()
 	assert.Equal(t, err, io.ErrUnexpectedEOF)
-	assert.Nil(t, packet)
-}
-
-func Test_Decoder_DataPacket_LeftoverBytes(t *testing.T) {
-	buf := bytes.NewReader([]byte{
-		byte(DataType), 35,
-		byte(NameType), 5,
-		byte(NameComponentType), 3, 'f', 'o', 'o',
-		byte(MetaInfoType), 0,
-		byte(ContentType), 11, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd',
-		byte(SignatureInfoType), 3,
-		byte(SignatureTypeType), 1, 1, /* Sha256WithRSASignature */
-		byte(SignatureValueType), 4, 'a', 'b', 'c', 'd',
-		0x01, 0x02,
-	})
-
-	packet, err := NewDecoder(buf).Decode()
-	assert.Equal(t, err, &encoding.InvalidUnmarshalError{Message: "leftover bytes"})
 	assert.Nil(t, packet)
 }

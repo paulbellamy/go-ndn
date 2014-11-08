@@ -54,11 +54,12 @@ func Test_Encoder_InterestPacket(t *testing.T) {
 	err := NewEncoder(buf).Encode(packet)
 	assert.NoError(t, err)
 	assert.Equal(t, buf.Bytes(), []byte{
-		byte(InterestType), 38,
+		byte(InterestType), 40,
 		// Name
 		byte(NameType), 5,
 		byte(NameComponentType), 3, 'f', 'o', 'o',
 		// Selectors?
+		byte(SelectorsType), 18,
 		//   MinSuffixComponents?
 		byte(MinSuffixComponentsType), 1, 1,
 		//   MaxSuffixComponents?

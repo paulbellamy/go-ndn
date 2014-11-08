@@ -2,6 +2,7 @@ package tlv
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
 	"github.com/paulbellamy/go-ndn/encoding"
@@ -13,30 +14,30 @@ type parser interface {
 
 type parserFunc func([]byte) (interface{}, []byte, error)
 
-func (f parserFunc) Parse(body []byte) (interface{}, []byte, error) {
-	return f(body)
+func (f parserFunc) Parse(input []byte) (interface{}, []byte, error) {
+	return f(input)
 }
 
-var nonNegativeInteger = parserFunc(func(body []byte) (interface{}, []byte, error) {
-	value, numRead, err := ReadUint(bytes.NewReader(body))
+var nonNegativeInteger = parserFunc(func(input []byte) (interface{}, []byte, error) {
+	value, numRead, err := ReadUint(bytes.NewReader(input))
 	if err != nil {
-		return nil, body, io.ErrUnexpectedEOF
+		return nil, input, io.ErrUnexpectedEOF
 	}
-	return value, body[numRead:], nil
+	return value, input[numRead:], nil
 })
 
-var Byte = parserFunc(func(body []byte) (interface{}, []byte, error) {
-	if len(body) <= 0 {
-		return nil, body, io.ErrUnexpectedEOF
+var Byte = parserFunc(func(input []byte) (interface{}, []byte, error) {
+	if len(input) <= 0 {
+		return nil, input, io.ErrUnexpectedEOF
 	}
-	return body[0], body[1:], nil
+	return input[0], input[1:], nil
 })
 
-var empty = parserFunc(func(body []byte) (interface{}, []byte, error) {
-	if len(body) > 0 {
-		return nil, body, &encoding.InvalidUnmarshalError{Message: "unexpected bytes"}
+var empty = parserFunc(func(input []byte) (interface{}, []byte, error) {
+	if len(input) > 0 {
+		return nil, input, &encoding.InvalidUnmarshalError{Message: "unexpected bytes"}
 	}
-	return nil, body, nil
+	return nil, input, nil
 })
 
 type bytesParserType func(int) parser
@@ -45,17 +46,17 @@ var Bytes bytesParserType = func(n int) parser {
 	return bytesWithLengthParser(n)
 }
 
-func (b bytesParserType) Parse(body []byte) (interface{}, []byte, error) {
-	return body, []byte{}, nil
+func (b bytesParserType) Parse(input []byte) (interface{}, []byte, error) {
+	return input, []byte{}, nil
 }
 
 type bytesWithLengthParser int
 
-func (b bytesWithLengthParser) Parse(body []byte) (interface{}, []byte, error) {
-	if len(body) < int(b) {
-		return nil, body, io.ErrUnexpectedEOF
+func (b bytesWithLengthParser) Parse(input []byte) (interface{}, []byte, error) {
+	if len(input) < int(b) {
+		return nil, input, io.ErrUnexpectedEOF
 	}
-	return body[:b], body[b:], nil
+	return input[:b], input[b:], nil
 }
 
 type seqParser []parser
@@ -68,15 +69,15 @@ func seq(ps ...parser) parser {
 	return seqParser(ps)
 }
 
-func (s seqParser) Parse(body []byte) (interface{}, []byte, error) {
+func (s seqParser) Parse(input []byte) (interface{}, []byte, error) {
 	var result = []interface{}{}
-	var rest = body
+	var rest = input
 	var err error
 	for _, p := range s {
 		var item interface{}
 		item, rest, err = p.Parse(rest)
 		if err != nil {
-			return nil, body, err
+			return nil, input, err
 		}
 
 		if item != nil {
@@ -130,7 +131,7 @@ func (p tlvParser) Parse(input []byte) (interface{}, []byte, error) {
 	}
 
 	if t != p.t {
-		return nil, input, &encoding.InvalidUnmarshalError{Message: "unexpected tlv type"}
+		return nil, input, &encoding.InvalidUnmarshalError{Message: fmt.Sprintf("unexpected tlv type %d, expected %d", t, p.t)}
 	}
 
 	length, read, err := ReadNumber(r)
@@ -238,8 +239,8 @@ func (ps orParser) Parse(input []byte) (interface{}, []byte, error) {
 func maybe(p parser) parser {
 	return parserFunc(func(input []byte) (interface{}, []byte, error) {
 		result, rest, err := p.Parse(input)
-		if err == io.ErrUnexpectedEOF || err == io.EOF {
-			err = nil
+		if err != nil {
+			return nil, input, nil
 		}
 		return result, rest, err
 	})
