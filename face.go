@@ -54,8 +54,7 @@ func (f *Face) ProcessEvents() error {
 	r := tlv.NewDecoder(f.transport)
 
 	for {
-		var packet interface{}
-		err := r.Decode(&packet)
+		packet, err := r.Decode()
 		if err != nil {
 			if err == io.EOF {
 				err = nil
