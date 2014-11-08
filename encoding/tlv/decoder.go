@@ -43,15 +43,6 @@ func (r *Decoder) Decode() (interface{}, error) {
 	}
 }
 
-func (r *Decoder) isParentTLV(t uint64) bool {
-	switch t {
-	case InterestType, DataType, NameType, SignatureInfoType:
-		return true
-	default:
-		return false
-	}
-}
-
 func unmarshalInterestPacket(input []byte) (interface{}, error) {
 	t, rest, err := Interest.Parse(input)
 	if err != nil {
