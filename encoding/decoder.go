@@ -3,7 +3,7 @@ package encoding
 import "io"
 
 type Decoder interface {
-	Decode(v interface{}) error
+	Decode() (interface{}, error)
 }
 
 type DecoderFactory func(io.Reader) Decoder

@@ -129,15 +129,19 @@ func (p tlvParser) Parse(input []byte) (interface{}, []byte, error) {
 		return nil, input, err
 	}
 
+	if t != p.t {
+		return nil, input, &encoding.InvalidUnmarshalError{Message: "unexpected tlv type"}
+	}
+
 	length, read, err := ReadNumber(r)
 	n += read
 	if err != nil {
 		return nil, input, err
 	}
 
-	end := int64(len(input[n:]))
-	if n+int64(length) < end {
-		end = n + int64(length)
+	end := int64(length) + n
+	if end > int64(len(input)) {
+		return nil, input, io.ErrUnexpectedEOF
 	}
 	value, rest, err := p.p.Parse(input[n:end])
 	if err != nil {
@@ -218,8 +222,11 @@ func or(p parser, ps ...parser) parser {
 type orParser []parser
 
 func (ps orParser) Parse(input []byte) (interface{}, []byte, error) {
+	var item interface{}
+	var rest []byte
+	var err error
 	for _, p := range ps {
-		item, rest, err := p.Parse(input)
+		item, rest, err = p.Parse(input)
 		if err == nil {
 			return item, rest, err
 		}
@@ -231,7 +238,7 @@ func (ps orParser) Parse(input []byte) (interface{}, []byte, error) {
 func maybe(p parser) parser {
 	return parserFunc(func(input []byte) (interface{}, []byte, error) {
 		result, rest, err := p.Parse(input)
-		if err == io.ErrUnexpectedEOF {
+		if err == io.ErrUnexpectedEOF || err == io.EOF {
 			err = nil
 		}
 		return result, rest, err

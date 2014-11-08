@@ -18,6 +18,26 @@ func Test_tlv(t *testing.T) {
 	})
 }
 
+func Test_tlv_Small(t *testing.T) {
+	result, rest, err := tlv(NameType, zeroOrMore(NameComponent)).Parse([]byte{byte(NameType), 5, byte(NameComponentType), 3, 'f', 'o', 'o'})
+	assert.NoError(t, err)
+	assert.Equal(t, rest, []byte{})
+	assert.Equal(t, result, GenericTLV{
+		T: NameType,
+		V: []interface{}{
+			GenericTLV{T: NameComponentType, V: []byte("foo")},
+		},
+	})
+}
+
+func Test_tlv_ChecksType(t *testing.T) {
+	input := []byte{byte(DataType), 5, byte(NameComponentType), 3, 'f', 'o', 'o'}
+	result, rest, err := tlv(NameType, zeroOrMore(NameComponent)).Parse(input)
+	assert.EqualError(t, err, "unexpected tlv type")
+	assert.Equal(t, rest, input)
+	assert.Nil(t, result)
+}
+
 func Test_Byte(t *testing.T) {
 	result, rest, err := Byte.Parse([]byte{'h'})
 	assert.NoError(t, err)

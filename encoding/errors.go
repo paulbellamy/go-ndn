@@ -39,19 +39,3 @@ type InvalidUnmarshalError struct {
 func (e *InvalidUnmarshalError) Error() string {
 	return e.Message
 }
-
-type InvalidUnmarshalTargetError struct {
-	Encoding string
-	Type     reflect.Type
-}
-
-func (e *InvalidUnmarshalTargetError) Error() string {
-	if e.Type == nil {
-		return e.Encoding + ": Unmarshal(nil)"
-	}
-
-	if e.Type.Kind() != reflect.Ptr {
-		return e.Encoding + ": Unmarshal(non-pointer " + e.Type.String() + ")"
-	}
-	return e.Encoding + ": Unmarshal(nil " + e.Type.String() + ")"
-}
