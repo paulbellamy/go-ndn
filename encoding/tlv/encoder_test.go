@@ -28,6 +28,7 @@ func Test_Encoder_MaxPacketSize(t *testing.T) {
 	packet := &packets.Data{}
 	packet.SetName(name.New(name.Component{"a"}))
 	packet.SetContent(content)
+	packet.SetSignature(packets.DigestSha256("abcdabcdabcdabcdabcdabcdabcdabcd"))
 
 	buf := &bytes.Buffer{}
 	err := NewEncoder(buf).Encode(packet)
