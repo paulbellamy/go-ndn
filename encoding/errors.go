@@ -20,6 +20,12 @@ func (e *NameRequiredError) Error() string {
 	return "name required"
 }
 
+type SignatureRequiredError struct{}
+
+func (e *SignatureRequiredError) Error() string {
+	return "signature required"
+}
+
 type PacketTooLargeError struct{}
 
 func (e *PacketTooLargeError) Error() string {

@@ -24,6 +24,8 @@ type Interest struct {
 	mustBeFresh    bool
 	hasMustBeFresh bool
 
+	nonce [4]byte
+
 	scope    int
 	hasScope bool
 
@@ -90,6 +92,14 @@ func (i *Interest) GetMustBeFresh() bool {
 func (i *Interest) SetMustBeFresh(x bool) {
 	i.hasMustBeFresh = true
 	i.mustBeFresh = x
+}
+
+func (i *Interest) GetNonce() [4]byte {
+	return i.nonce
+}
+
+func (i *Interest) SetNonce(x [4]byte) {
+	i.nonce = x
 }
 
 func (i *Interest) GetSignature() Signature {

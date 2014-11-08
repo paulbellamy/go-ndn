@@ -84,6 +84,16 @@ func Test_Interest_Name(t *testing.T) {
 	assert.Equal(t, subject.GetName(), name.New(name.Component{"a"}, name.Component{"b"}))
 }
 
+func Test_Interest_Nonce(t *testing.T) {
+	subject := &Interest{}
+
+	// when unspecified
+	assert.Equal(t, subject.GetNonce(), [4]byte{})
+
+	subject.SetNonce([4]byte{'a', 'b', 'c', 'd'})
+	assert.Equal(t, subject.GetNonce(), [4]byte{'a', 'b', 'c', 'd'})
+}
+
 func Test_Interest_Scope(t *testing.T) {
 	subject := &Interest{}
 
