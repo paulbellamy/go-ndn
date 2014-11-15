@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM ubuntu:14.04
 MAINTAINER Paul Bellamy <paul@paulbellamy.com>
 
 RUN apt-get update
@@ -13,14 +13,13 @@ RUN cd NFD && git submodule init && git submodule update
 RUN cd NFD && ./waf configure --with-tests && ./waf -j1 && ./waf install && cd ..
 RUN cp /usr/local/etc/ndn/nfd.conf.sample /usr/local/etc/ndn/nfd.conf
 
-# use supervisor to start the two processes, because they tell you to have it
-# self-daemonize.
-RUN apt-get install -y supervisor
-RUN mkdir -p /var/log/supervisor
-RUN echo "[supervisord]\nnodaemon=true" > /etc/supervisor/conf.d/supervisor.conf
-RUN echo "[program:nfd]\ncommand=nfd" > /etc/supervisor/conf.d/nfd.conf
-RUN echo "[program:nrd]\ncommand=nrd" > /etc/supervisor/conf.d/nrd.conf
+# Get nfd-start-fg script to boot it in the foreground
+RUN apt-get install -y wget
+RUN wget https://raw.githubusercontent.com/felixrabe/NFD/ndn-start-fg/tools/nfd-start-fg.sh -O /usr/local/bin/nfd-start-fg
+RUN sed -i'' -e 's|@BASH@|/bin/bash|' /usr/local/bin/nfd-start-fg
+RUN sed -i'' -e 's|@VERSION@|master|' /usr/local/bin/nfd-start-fg
+RUN chmod +x /usr/local/bin/nfd-start-fg
 
 EXPOSE 6363
 
-CMD ["/usr/bin/supervisord"]
+CMD nfd-start-fg
